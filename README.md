@@ -21,7 +21,7 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
 1. Open HACS in Home Assistant
 2. Go to Integrations
 3. Click the three-dot menu → "Custom repositories"
-4. Add `https://github.com/yourusername/ha-poollab` with category "Integration"
+4. Add `https://github.com/stefanh12/poollab` with category "Integration"
 5. Search for "Poollab" and install
 6. Restart Home Assistant
 
