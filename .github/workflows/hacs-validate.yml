@@ -1,0 +1,110 @@
+name: HACS integration validation
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    paths:
+      - "custom_components/holfuy/**"
+      - ".github/workflows/**"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: HACS integration validation
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13.2"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; else echo "requirements.txt not found; continuing"; fi
+
+      - name: Run repository validation script
+        env:
+          COMPONENT_PATH: custom_components/holfuy
+        run: |
+          python - <<'PY'
+          import json, sys, os
+
+          comp = os.environ.get("COMPONENT_PATH", "custom_components/holfuy")
+          manifest_path = os.path.join(comp, "manifest.json")
+          strings_path = os.path.join(comp, "strings.json")
+          translations_en_path = os.path.join(comp, "translations", "en.json")
+          cfg_flow = os.path.join(comp, "config_flow.py")
+
+          def fail(msg):
+              print("ERROR:", msg)
+              sys.exit(1)
+
+          # manifest.json exists
+          if not os.path.exists(manifest_path):
+              fail("manifest.json not found in " + comp)
+
+          try:
+              manifest = json.load(open(manifest_path, "r", encoding="utf-8"))
+          except Exception as e:
+              fail(f"Failed to parse manifest.json: {e}")
+
+          # required manifest keys
+          for key in ("domain","name","version"):
+              if key not in manifest or not manifest.get(key):
+                  fail(f"manifest.json missing required key: {key}")
+
+          # if config_flow true ensure config_flow.py exists
+          if manifest.get("config_flow") is True:
+              if not os.path.exists(cfg_flow):
+                  fail("manifest.json declares config_flow:true but config_flow.py is missing")
+
+          # strings.json presence and minimal keys OR translations/en.json
+          strings = None
+          if os.path.exists(strings_path):
+              try:
+                  strings = json.load(open(strings_path, "r", encoding="utf-8"))
+              except Exception as e:
+                  fail(f"Failed to parse strings.json: {e}")
+          elif os.path.exists(translations_en_path):
+              try:
+                  en_data = json.load(open(translations_en_path, "r", encoding="utf-8"))
+                  # wrap translations/en.json contents under an "en" key to reuse downstream checks
+                  strings = {"en": en_data}
+              except Exception as e:
+                  fail(f"Failed to parse translations/en.json: {e}")
+          else:
+              fail("strings.json is missing; add translations to show UI descriptions (expected custom_components/holfuy/strings.json or custom_components/holfuy/translations/en.json)")
+
+          # Check english keys exist for UI steps (user and init)
+          en = strings.get("en")
+          if not en:
+              fail("strings.json/translations must include an 'en' translation object")
+
+          try:
+              user_step = en["config"]["step"]["user"]
+              if not user_step.get("description"):
+                  fail("strings.json/translations: expected config.step.user.description")
+          except Exception:
+              fail("strings.json/translations: expected config.step.user description keys")
+
+          # Basic sanity checks on API_URL in const.py (optional)
+          const_path = os.path.join(comp, "const.py")
+          if not os.path.exists(const_path):
+              fail("const.py not found")
+          const_text = open(const_path, "r", encoding="utf-8").read()
+          if "API_URL" not in const_text:
+              fail("const.py does not appear to define API_URL")
+
+          # If reached here, validation passed
+          print("Validation OK")
+          PY
+
+      - name: Run hassfest
+        uses: home-assistant/actions/hassfest@master
+        with:
+          path: custom_components/holfuy
