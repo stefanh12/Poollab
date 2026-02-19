@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 
 from .const import (
-    API_BASE_URL,
+    API_URL,
     API_TIMEOUT,
     MIN_TIME_BETWEEN_UPDATES,
     MAX_API_RETRIES,
