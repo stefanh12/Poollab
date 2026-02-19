@@ -4,7 +4,7 @@ on:
     branches: [main, master]
   pull_request:
     paths:
-      - "custom_components/holfuy/**"
+      - "custom_components/poollab/**"
       - ".github/workflows/**"
 
 jobs:
