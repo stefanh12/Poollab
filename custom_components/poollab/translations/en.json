@@ -3,7 +3,10 @@
     "step": {
       "user": {
         "title": "Poollab Account",
-        "description": "Enter your personal LabCom API token\n\nEach account has a unique token. Get yours from: https://backend.labcom.cloud/graphiql\n\n1. Visit the link above\n2. Your token appears in the URL after ?token=\n3. Copy and paste the entire token string\n\n⚠️ Never share your personal token!",
+        "description": "Enter your personal LabCom API token\n\nEach account has a unique token. Get yours from: {token_url}\n\n1. Visit the link above\n2. Your token appears in the URL after ?token=\n3. Copy and paste the entire token string\n\n⚠️ Never share your personal token!",
+        "description_placeholders": {
+          "token_url": "https://backend.labcom.cloud/graphiql"
+        },
         "data": {
           "token": "Personal API Token"
         }
