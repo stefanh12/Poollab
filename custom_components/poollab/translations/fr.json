@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Compte Poollab",
-        "description": "Entrez votre token API personnel LabCom\n\nChaque compte a un token unique. Obtenez le vôtre à: https://backend.labcom.cloud/graphiql\n\n1. Visitez le lien ci-dessus\n2. Votre token figure dans l'URL après ?token=\n3. Copiez et collez le token entièrement\n\n⚠️ Ne partagez jamais votre token personnel!",
+        "description": "Entrez votre token API personnel LabCom\n\nChaque compte a un token unique. Obtenez le vôtre à: {token_url}\n\n1. Visitez le lien ci-dessus\n2. Votre token figure dans l'URL après ?token=\n3. Copiez et collez le token entièrement\n\n⚠️ Ne partagez jamais votre token personnel!",
         "data": {
           "token": "Token API Personnel"
         }

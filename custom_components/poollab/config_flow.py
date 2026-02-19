@@ -67,11 +67,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=data_schema,
             errors=errors,
             description_placeholders={
-                "token_help": "Get your personal API token from: https://backend.labcom.cloud/graphiql\n\n"
-                              "1. Visit the URL above\n"
-                              "2. Your token is in the URL after ?token=\n"
-                              "3. Copy and paste the entire token string below\n\n"
-                              "⚠️ Each account has a unique personal token. Never share it!"
+                "token_url": "https://backend.labcom.cloud/graphiql"
             },
         )
 
