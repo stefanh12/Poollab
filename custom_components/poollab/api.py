@@ -75,12 +75,12 @@ class PoollabApiClient:
 
                         _LOGGER.debug(
                             "Making GraphQL request to %s with headers: %s",
-                            API_BASE_URL,
+                            API_URL,
                             {k: (v[:20] + "..." if len(v) > 20 else v) for k, v in headers.items()},
                         )
 
                         async with self._session.post(
-                            API_BASE_URL,
+                            API_URL,
                             json=payload,
                             headers=headers,
                         ) as resp:
