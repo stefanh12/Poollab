@@ -5,7 +5,7 @@ import aiohttp
 import async_timeout
 from typing import Any, Dict, Optional, List
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from .const import (
     API_BASE_URL,
@@ -118,7 +118,7 @@ class PoollabApiClient:
                                 if attempt < self._max_retries - 1:
                                     try:
                                         error_body = await resp.text()
-                                    except:
+                                    except Exception:
                                         error_body = "Could not read response"
                                     _LOGGER.warning(
                                         "API request failed (%s), retrying (attempt %d/%d). Response: %s",
@@ -132,7 +132,7 @@ class PoollabApiClient:
                                     continue
                                 try:
                                     error_body = await resp.text()
-                                except:
+                                except Exception:
                                     error_body = "Could not read response"
                                 _LOGGER.error("API request failed: %s. Response: %s", resp.status, error_body[:200] if error_body else "No response body")
                                 return None

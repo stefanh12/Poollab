@@ -3,12 +3,9 @@
 import asyncio
 import logging
 from typing import Any, Dict, Optional
-
-import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_TOKEN
-from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -41,7 +38,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input[CONF_TOKEN],
                     session,
                 )
-                
+
                 if await api_client.verify_token():
                     devices = await api_client.get_devices()
                     if devices:
