@@ -40,15 +40,31 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict:
         """Fetch data from Poollab API."""
         try:
-            device_info = await self.api_client.get_device_info(self.device_id)
-            readings = await self.api_client.get_device_readings(self.device_id)
-            
-            if not readings:
-                raise UpdateFailed("No readings available from Poollab API")
+            measurements = await self.api_client.get_measurements()
+
+            if not measurements:
+                raise UpdateFailed("No measurements available from Poollab API")
+
+            # Filter measurements for this device account
+            device_measurements = [
+                m for m in measurements
+                if m.get("account") == self.device_id or m.get("device_serial") == self.device_id
+            ]
+
+            if not device_measurements:
+                _LOGGER.warning(f"No measurements found for device {self.device_id}")
+                device_measurements = []
+
+            # Extract latest values for each parameter
+            latest_values = {}
+            for measurement in device_measurements:
+                param = measurement.get("parameter", "unknown")
+                latest_values[param] = measurement
 
             return {
-                "device_info": device_info,
-                "readings": readings,
+                "device_id": self.device_id,
+                "measurements": device_measurements,
+                "latest_values": latest_values,
             }
         except asyncio.TimeoutError as err:
             raise UpdateFailed(f"Timeout connecting to Poollab API: {err}") from err

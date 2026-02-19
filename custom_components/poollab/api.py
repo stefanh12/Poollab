@@ -55,7 +55,7 @@ class PoollabApiClient:
                 try:
                     async with async_timeout.timeout(API_TIMEOUT):
                         headers = {
-                            "Authorization": f"Bearer {self.token}",
+                            "Authorization": self.token,
                             "Content-Type": "application/json",
                         }
 
@@ -63,6 +63,12 @@ class PoollabApiClient:
                             "query": query,
                             "variables": variables or {},
                         }
+
+                        _LOGGER.debug(
+                            "Making GraphQL request to %s with headers: %s",
+                            API_BASE_URL,
+                            {k: (v[:20] + "..." if len(v) > 20 else v) for k, v in headers.items()},
+                        )
 
                         async with self._session.post(
                             API_BASE_URL,
@@ -79,7 +85,11 @@ class PoollabApiClient:
                                     return None
                                 return data.get("data")
                             elif resp.status == 401:
-                                _LOGGER.error("Invalid API token")
+                                _LOGGER.error("Invalid API token (401 Unauthorized)")
+                                return None
+                            elif resp.status == 403:
+                                body = await resp.text()
+                                _LOGGER.error("Access forbidden (403 Forbidden). Response: %s", body)
                                 return None
                             elif resp.status == 429:  # Rate limited
                                 if attempt < self._max_retries - 1:
@@ -97,16 +107,25 @@ class PoollabApiClient:
                                 return None
                             else:
                                 if attempt < self._max_retries - 1:
+                                    try:
+                                        error_body = await resp.text()
+                                    except:
+                                        error_body = "Could not read response"
                                     _LOGGER.warning(
-                                        "API request failed (%s), retrying (attempt %d/%d)",
+                                        "API request failed (%s), retrying (attempt %d/%d). Response: %s",
                                         resp.status,
                                         attempt + 1,
                                         self._max_retries,
+                                        error_body[:200] if error_body else "No response body",
                                     )
                                     await asyncio.sleep(retry_delay)
                                     retry_delay *= RETRY_BACKOFF_MULTIPLIER
                                     continue
-                                _LOGGER.error("API request failed: %s", resp.status)
+                                try:
+                                    error_body = await resp.text()
+                                except:
+                                    error_body = "Could not read response"
+                                _LOGGER.error("API request failed: %s. Response: %s", resp.status, error_body[:200] if error_body else "No response body")
                                 return None
                 except asyncio.TimeoutError:
                     if attempt < self._max_retries - 1:
@@ -141,111 +160,76 @@ class PoollabApiClient:
             return None
 
     async def verify_token(self) -> bool:
-        """Verify the API token is valid."""
-        query = """
-            query {
-                me {
-                    id
-                    email
-                }
-            }
-        """
-        result = await self._query(query)
-        return result is not None and "me" in result
+        """Verify the API token is valid by querying measurements."""
+        result = await self.get_measurements()
+        return result is not None and len(result) >= 0
 
-    async def get_devices(self) -> List[Dict[str, Any]]:
-        """Get list of devices associated with the account."""
+    async def get_measurements(self) -> Optional[List[Dict[str, Any]]]:
+        """Get all measurements from Labcom cloud."""
         query = """
-            query {
-                devices {
-                    id
-                    name
-                    serialNumber
-                    status
-                }
-            }
+        {
+          Measurements {
+            account
+            id
+            unit
+            parameter
+            timestamp
+            comment
+            value
+            device_serial
+            operator_name
+          }
+        }
         """
         result = await self._query(query)
-        if result and "devices" in result:
-            return result["devices"]
+        if result and "Measurements" in result:
+            return result["Measurements"]
         return []
 
-    async def get_device_readings(self, device_id: str) -> Optional[Dict[str, Any]]:
-        """Get latest readings for a specific device."""
+    async def get_active_chlorine(
+        self, temperature: float, ph: float, chlorine: float, cya: float
+    ) -> Optional[Dict[str, Any]]:
+        """Calculate active chlorine values based on water parameters."""
         query = """
-            query GetDeviceReadings($deviceId: ID!) {
-                device(id: $deviceId) {
-                    id
-                    name
-                    lastReading {
-                        ph
-                        chlorine
-                        freeChlorine
-                        totalChlorine
-                        temperature
-                        alkalinity
-                        cya
-                        salt
-                        timestamp
-                    }
-                }
-            }
-        """
-        result = await self._query(query, {"deviceId": device_id})
-        if result and "device" in result:
-            return result["device"]
+        {{
+          ActiveChlorine (temperature: {temperature}, pH: {ph}, chlorine: {chlorine}, cya: {cya}) {{
+            unbound_chlorine
+            bound_to_cya
+            ocl
+            cl3cy
+            cl2cy
+            hocl
+            hclcy
+            hcl2cy
+            h2clcy
+          }}
+        }}
+        """.format(temperature=temperature, ph=ph, chlorine=chlorine, cya=cya)
+
+        result = await self._query(query)
+        if result and "ActiveChlorine" in result:
+            return result["ActiveChlorine"]
         return None
 
-    async def get_device_readings_history(
-        self, device_id: str, hours: int = 24
-    ) -> Optional[List[Dict[str, Any]]]:
-        """Get historical readings for a device."""
-        query = """
-            query GetReadingsHistory($deviceId: ID!, $hours: Int!) {
-                device(id: $deviceId) {
-                    id
-                    readings(last: $hours) {
-                        edges {
-                            node {
-                                ph
-                                chlorine
-                                freeChlorine
-                                totalChlorine
-                                temperature
-                                alkalinity
-                                cya
-                                salt
-                                timestamp
-                            }
-                        }
-                    }
-                }
-            }
-        """
-        result = await self._query(query, {"deviceId": device_id, "hours": hours})
-        if result and "device" in result and "readings" in result["device"]:
-            readings = result["device"]["readings"]
-            return [edge["node"] for edge in readings.get("edges", [])]
-        return None
+    async def get_devices(self) -> List[Dict[str, Any]]:
+        """Get list of unique devices from measurements."""
+        measurements = await self.get_measurements()
+        if not measurements:
+            return []
 
-    async def get_device_info(self, device_id: str) -> Optional[Dict[str, Any]]:
-        """Get detailed info about a specific device."""
-        query = """
-            query GetDevice($deviceId: ID!) {
-                device(id: $deviceId) {
-                    id
-                    name
-                    serialNumber
-                    status
-                    model
-                    firmwareVersion
+        devices = {}
+        for measurement in measurements:
+            device_serial = measurement.get("device_serial", "unknown")
+            account = measurement.get("account", "unknown")
+            if device_serial not in devices:
+                devices[device_serial] = {
+                    "id": device_serial,
+                    "name": account,
+                    "serialNumber": device_serial,
+                    "account": account,
                 }
-            }
-        """
-        result = await self._query(query, {"deviceId": device_id})
-        if result and "device" in result:
-            return result["device"]
-        return None
+
+        return list(devices.values())
 
     async def close(self) -> None:
         """Close the session."""
