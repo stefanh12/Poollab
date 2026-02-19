@@ -42,15 +42,21 @@ class PoollabApiClient:
                 _LOGGER.debug("Throttling API request, waiting %.1f seconds", wait_time)
                 await asyncio.sleep(wait_time)
 
-    async def _query(self, query: str, variables: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
+    async def _query(
+        self,
+        query: str,
+        variables: Optional[Dict] = None,
+        skip_throttle: bool = False,
+    ) -> Optional[Dict[str, Any]]:
         """Execute a GraphQL query with throttling and retry logic."""
         if not self._session:
             return None
 
         # Use lock to serialize API requests (prevent concurrent calls)
         async with self._request_lock:
-            # Apply request throttling
-            await self._apply_throttle()
+            # Apply request throttling unless explicitly skipped
+            if not skip_throttle:
+                await self._apply_throttle()
 
             retry_delay = 1  # Start with 1 second delay
 
@@ -246,12 +252,18 @@ class PoollabApiClient:
           }}
         }}
         """.format(temperature=temperature, ph=ph, chlorine=chlorine, cya=cya)
-
-        result = await self._query(query)
+        _LOGGER.debug("ActiveChlorine query: %s", query.strip())
+        start_time = datetime.now()
+        result = await self._query(query, skip_throttle=True)
+        duration = (datetime.now() - start_time).total_seconds()
+        _LOGGER.debug("ActiveChlorine API call completed in %.2fs", duration)
         if result and "ActiveChlorine" in result:
             _LOGGER.debug("Active chlorine result: %s", result["ActiveChlorine"])
             return result["ActiveChlorine"]
-        _LOGGER.warning("No ActiveChlorine data in API response")
+        if result is None:
+            _LOGGER.warning("ActiveChlorine API returned no data (None)")
+        else:
+            _LOGGER.warning("No ActiveChlorine data in API response: %s", result)
         return None
 
     async def get_devices(self) -> List[Dict[str, Any]]:

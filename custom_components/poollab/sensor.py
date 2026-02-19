@@ -19,6 +19,8 @@ from .const import (
     SENSOR_TYPE_ALK,
     SENSOR_TYPE_CYA,
     SENSOR_TYPE_SALT,
+    SENSOR_TYPE_UNBOUND_CL,
+    SENSOR_TYPE_BOUND_CYA,
 )
 
 
@@ -48,6 +50,8 @@ async def async_setup_entry(
             SENSOR_TYPE_ALK,
             SENSOR_TYPE_CYA,
             SENSOR_TYPE_SALT,
+            SENSOR_TYPE_UNBOUND_CL,
+            SENSOR_TYPE_BOUND_CYA,
         ]:
             sensors.append(
                 PoollabSensor(
@@ -112,6 +116,7 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             return None
 
         latest_values = self.coordinator.data.get("latest_values", {})
+        active_chlorine = self.coordinator.data.get("active_chlorine", {})
 
         # Map sensor types to Labcom parameter names
         sensor_mapping = {
@@ -125,9 +130,31 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             SENSOR_TYPE_SALT: "PL Salt",
         }
 
+        # Map sensor types to ActiveChlorine keys
+        active_chlorine_mapping = {
+            SENSOR_TYPE_UNBOUND_CL: "unbound_chlorine",
+            SENSOR_TYPE_BOUND_CYA: "bound_to_cya",
+        }
+
         # Handle calculated sensors
         if self.sensor_type == SENSOR_TYPE_COMBINED_CL:
             return self._calculate_combined_chlorine(latest_values)
+
+        # Handle ActiveChlorine sensors
+        if self.sensor_type in active_chlorine_mapping:
+            ac_key = active_chlorine_mapping[self.sensor_type]
+            if ac_key in active_chlorine:
+                value = active_chlorine.get(ac_key)
+                if value is not None:
+                    try:
+                        config = SENSOR_CONFIGS.get(self.sensor_type, {})
+                        precision = config.get("precision", 2)
+                        if isinstance(precision, int) and precision >= 0:
+                            return round(float(value), precision)
+                        return float(value)
+                    except (ValueError, TypeError):
+                        return None
+            return None
 
         param_name = sensor_mapping.get(self.sensor_type)
         if param_name and param_name in latest_values:
@@ -222,6 +249,24 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             measurement = latest_values[param_name]
             if "timestamp" not in attributes and measurement.get("timestamp"):
                 attributes["timestamp"] = measurement.get("timestamp")
+
+        # Add info for ActiveChlorine calculated sensors
+        if self.sensor_type in [SENSOR_TYPE_UNBOUND_CL, SENSOR_TYPE_BOUND_CYA]:
+            active_chlorine = self.coordinator.data.get("active_chlorine", {})
+
+            if self.sensor_type == SENSOR_TYPE_UNBOUND_CL:
+                attributes["description"] = "Free chlorine available for sanitization"
+                attributes["ideal_range"] = "1-3 ppm"
+                attributes["also_known_as"] = "HOCl + OCl-"
+
+            elif self.sensor_type == SENSOR_TYPE_BOUND_CYA:
+                attributes["description"] = "Chlorine bound to stabilizer (CYA)"
+                attributes["calculation"] = "Chlorine speciation with respect to CYA"
+
+            # Add all ActiveChlorine values as attributes for reference
+            if active_chlorine:
+                for key, value in active_chlorine.items():
+                    attributes[f"ac_{key}"] = value
 
         return attributes
 

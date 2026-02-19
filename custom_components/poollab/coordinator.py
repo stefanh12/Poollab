@@ -62,6 +62,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                     "device_id": self.device_id,
                     "measurements": [],
                     "latest_values": {},
+                    "active_chlorine": {},
                 }
 
             _LOGGER.debug(
@@ -132,10 +133,77 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                 len(latest_values),
             )
 
+            # Prepare ActiveChlorine calculation data (optional, non-blocking)
+            active_chlorine_data = {}
+            try:
+                # Extract required values for ActiveChlorine calculation
+                ph_data = latest_values.get("PL pH")
+                chlorine_data = latest_values.get("PL Chlorine Free")
+                cya_data = latest_values.get("PL Cyanuric Acid")
+                temp_data = latest_values.get("PL Temperature")
+
+                # Check if we have the minimum required parameters
+                if ph_data and chlorine_data:
+                    ph = float(ph_data.get("value", 7.0))
+                    chlorine = float(chlorine_data.get("value", 0.0))
+                    cya = float(cya_data.get("value", 0.0)) if cya_data else 0.0
+                    temperature = float(temp_data.get("value", 25.0)) if temp_data else 25.0
+
+                    _LOGGER.debug(
+                        "Calling ActiveChlorine API for device %s with temp=%s, pH=%s, chlorine=%s, cya=%s",
+                        self.device_id,
+                        temperature,
+                        ph,
+                        chlorine,
+                        cya,
+                    )
+
+                    try:
+                        active_chlorine_result = await asyncio.wait_for(
+                            self.api_client.get_active_chlorine(temperature, ph, chlorine, cya),
+                            timeout=20.0
+                        )
+
+                        if active_chlorine_result:
+                            active_chlorine_data = active_chlorine_result
+                            _LOGGER.info(
+                                "Device %s - ActiveChlorine calculated: unbound_chlorine=%s, bound_to_cya=%s",
+                                self.device_id,
+                                active_chlorine_data.get("unbound_chlorine"),
+                                active_chlorine_data.get("bound_to_cya"),
+                            )
+                        else:
+                            _LOGGER.warning("Failed to calculate ActiveChlorine for device %s", self.device_id)
+                    except asyncio.TimeoutError:
+                        _LOGGER.warning(
+                            "Timeout calculating ActiveChlorine for device %s, continuing without it",
+                            self.device_id,
+                        )
+                    except Exception as e:
+                        _LOGGER.warning(
+                            "Error calculating ActiveChlorine for device %s: %s, continuing without it",
+                            self.device_id,
+                            e,
+                        )
+                else:
+                    _LOGGER.debug(
+                        "Insufficient data for ActiveChlorine calculation for device %s (pH: %s, Chlorine: %s)",
+                        self.device_id,
+                        "present" if ph_data else "missing",
+                        "present" if chlorine_data else "missing",
+                    )
+            except Exception as e:
+                _LOGGER.warning(
+                    "Unexpected error preparing ActiveChlorine for device %s: %s",
+                    self.device_id,
+                    e,
+                )
+
             return {
                 "device_id": self.device_id,
                 "measurements": device_measurements,
                 "latest_values": latest_values,
+                "active_chlorine": active_chlorine_data,
             }
         except asyncio.TimeoutError as err:
             raise UpdateFailed(f"Timeout connecting to Poollab API: {err}") from err

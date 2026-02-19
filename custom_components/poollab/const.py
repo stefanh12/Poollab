@@ -32,6 +32,10 @@ SENSOR_TYPE_ALK = "alkalinity"
 SENSOR_TYPE_CYA = "cya"
 SENSOR_TYPE_SALT = "salt"
 
+# ActiveChlorine calculated values
+SENSOR_TYPE_UNBOUND_CL = "unbound_chlorine"  # Free chlorine available for sanitization
+SENSOR_TYPE_BOUND_CYA = "bound_to_cya"  # Chlorine bound to CYA
+
 # Sensor configurations
 SENSOR_CONFIGS = {
     SENSOR_TYPE_PH: {
@@ -109,5 +113,25 @@ SENSOR_CONFIGS = {
         "precision": 0,
         "min": 0,
         "max": 3600,
+    },
+    SENSOR_TYPE_UNBOUND_CL: {
+        "name": "Unbound Chlorine",
+        "unit": "ppm",
+        "icon": "mdi:water-check",
+        "precision": 2,
+        "min": 0,
+        "max": 5,
+        "description": "Free chlorine available for sanitization (calculated)",
+        "calculated": True,
+    },
+    SENSOR_TYPE_BOUND_CYA: {
+        "name": "Chlorine Bound to CYA",
+        "unit": "ppm",
+        "icon": "mdi:water-alert",
+        "precision": 2,
+        "min": 0,
+        "max": 5,
+        "description": "Chlorine bound to stabilizer (CYA)",
+        "calculated": True,
     },
 }
