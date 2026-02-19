@@ -26,21 +26,43 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     session = async_get_clientsession(hass)
 
+    _LOGGER.info("Initializing Poollab API client from token")
     api_client = PoollabApiClient(
         entry.data[CONF_TOKEN],
         session,
     )
 
     # Verify token is valid
-    if not await api_client.verify_token():
-        _LOGGER.error("Invalid Poollab API token")
+    _LOGGER.debug("Verifying Poollab API token")
+    try:
+        if not await asyncio.wait_for(api_client.verify_token(), timeout=30.0):
+            _LOGGER.error("Invalid Poollab API token")
+            return False
+    except asyncio.TimeoutError:
+        _LOGGER.error("Timeout verifying Poollab API token")
+        return False
+    except Exception as err:
+        _LOGGER.error("Error verifying API token: %s", err, exc_info=True)
         return False
 
+    _LOGGER.info("Poollab API token verified successfully")
+
     # Get all devices/accounts (pools)
-    devices = await api_client.get_devices()
+    _LOGGER.debug("Fetching devices from Poollab API")
+    try:
+        devices = await asyncio.wait_for(api_client.get_devices(), timeout=30.0)
+    except asyncio.TimeoutError:
+        _LOGGER.error("Timeout fetching devices from Poollab API")
+        return False
+    except Exception as err:
+        _LOGGER.error("Error fetching devices: %s", err, exc_info=True)
+        return False
+    
     if not devices:
         _LOGGER.error("No devices found in Poollab account")
         return False
+
+    _LOGGER.info("Found %d device(s) in Poollab account", len(devices))
 
     # Set up data update coordinator for each device
     coordinators = {}
@@ -58,8 +80,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Create coordinator for this device
         coordinator = PoollabDataUpdateCoordinator(hass, api_client, device_id)
 
-        # Initial data fetch
-        await coordinator.async_config_entry_first_refresh()
+        # Initial data fetch with timeout
+        try:
+            await asyncio.wait_for(
+                coordinator.async_config_entry_first_refresh(),
+                timeout=30.0
+            )
+        except asyncio.TimeoutError:
+            _LOGGER.warning(
+                "Timeout during initial refresh for device %s, continuing anyway",
+                device_id
+            )
+        except Exception as err:
+            _LOGGER.warning(
+                "Error during initial refresh for device %s: %s, continuing anyway",
+                device_id,
+                err
+            )
 
         coordinators[device_id] = {
             "coordinator": coordinator,

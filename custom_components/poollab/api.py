@@ -29,6 +29,9 @@ class PoollabApiClient:
         self._request_lock = asyncio.Lock()
         self._last_request_time: Optional[datetime] = None
         self._max_retries = MAX_API_RETRIES
+        self._measurements_cache: Optional[List[Dict[str, Any]]] = None
+        self._cache_time: Optional[datetime] = None
+        self._cache_ttl = 30  # Cache measurements for 30 seconds
 
     async def _apply_throttle(self) -> None:
         """Apply API request throttling to prevent rate limiting."""
@@ -166,6 +169,16 @@ class PoollabApiClient:
 
     async def get_measurements(self) -> Optional[List[Dict[str, Any]]]:
         """Get all measurements from Labcom cloud."""
+        # Check cache validity
+        if self._measurements_cache is not None and self._cache_time is not None:
+            elapsed = (datetime.now() - self._cache_time).total_seconds()
+            if elapsed < self._cache_ttl:
+                _LOGGER.debug(
+                    "Using cached measurements (cache age: %.1f seconds)",
+                    elapsed,
+                )
+                return self._measurements_cache
+        
         query = """
         {
           Measurements {
@@ -182,14 +195,42 @@ class PoollabApiClient:
         }
         """
         result = await self._query(query)
+        _LOGGER.debug("Raw API response: %s", result)
+
         if result and "Measurements" in result:
-            return result["Measurements"]
+            measurements = result["Measurements"]
+            _LOGGER.info("Retrieved %d measurements from Labcom", len(measurements))
+            
+            # Cache the measurements
+            self._measurements_cache = measurements
+            self._cache_time = datetime.now()
+            
+            for idx, measurement in enumerate(measurements):
+                _LOGGER.debug(
+                    "Measurement %d: account=%s, parameter=%s, value=%s, device_serial=%s, timestamp=%s",
+                    idx,
+                    measurement.get("account"),
+                    measurement.get("parameter"),
+                    measurement.get("value"),
+                    measurement.get("device_serial"),
+                    measurement.get("timestamp"),
+                )
+            return measurements
+
+        _LOGGER.warning("No measurements found in API response or error occurred")
         return []
 
     async def get_active_chlorine(
         self, temperature: float, ph: float, chlorine: float, cya: float
     ) -> Optional[Dict[str, Any]]:
         """Calculate active chlorine values based on water parameters."""
+        _LOGGER.debug(
+            "Calculating active chlorine with temp=%s, pH=%s, chlorine=%s, cya=%s",
+            temperature,
+            ph,
+            chlorine,
+            cya,
+        )
         query = """
         {{
           ActiveChlorine (temperature: {temperature}, pH: {ph}, chlorine: {chlorine}, cya: {cya}) {{
@@ -208,13 +249,16 @@ class PoollabApiClient:
 
         result = await self._query(query)
         if result and "ActiveChlorine" in result:
+            _LOGGER.debug("Active chlorine result: %s", result["ActiveChlorine"])
             return result["ActiveChlorine"]
+        _LOGGER.warning("No ActiveChlorine data in API response")
         return None
 
     async def get_devices(self) -> List[Dict[str, Any]]:
         """Get list of unique devices from measurements."""
         measurements = await self.get_measurements()
         if not measurements:
+            _LOGGER.warning("No measurements available to extract devices from")
             return []
 
         devices = {}
@@ -222,14 +266,22 @@ class PoollabApiClient:
             device_serial = measurement.get("device_serial", "unknown")
             account = measurement.get("account", "unknown")
             if device_serial not in devices:
-                devices[device_serial] = {
+                device = {
                     "id": device_serial,
                     "name": account,
                     "serialNumber": device_serial,
                     "account": account,
                 }
+                devices[device_serial] = device
+                _LOGGER.info(
+                    "Added device: account=%s, serial=%s",
+                    account,
+                    device_serial,
+                )
 
-        return list(devices.values())
+        device_list = list(devices.values())
+        _LOGGER.info("Total unique devices found: %d", len(device_list))
+        return device_list
 
     async def close(self) -> None:
         """Close the session."""
