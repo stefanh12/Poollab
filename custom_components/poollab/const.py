@@ -4,7 +4,7 @@ DOMAIN = "poollab"
 DEFAULT_NAME = "Poollab"
 
 # API
-API_BASE_URL = "https://backend.labcom.cloud/graphql"
+API_URL = "https://backend.labcom.cloud/graphql"
 API_TIMEOUT = 30  # seconds
 
 # API Throttling & Rate Limiting
