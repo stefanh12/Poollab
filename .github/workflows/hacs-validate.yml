@@ -29,12 +29,12 @@ jobs:
 
       - name: Run repository validation script
         env:
-          COMPONENT_PATH: custom_components/holfuy
+          COMPONENT_PATH: custom_components/poollab
         run: |
           python - <<'PY'
           import json, sys, os
 
-          comp = os.environ.get("COMPONENT_PATH", "custom_components/holfuy")
+          comp = os.environ.get("COMPONENT_PATH", "custom_components/poollab")
           manifest_path = os.path.join(comp, "manifest.json")
           strings_path = os.path.join(comp, "strings.json")
           translations_en_path = os.path.join(comp, "translations", "en.json")
@@ -107,4 +107,4 @@ jobs:
       - name: Run hassfest
         uses: home-assistant/actions/hassfest@master
         with:
-          path: custom_components/holfuy
+          path: custom_components/poollab
