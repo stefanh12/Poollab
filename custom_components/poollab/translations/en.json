@@ -18,5 +18,16 @@
     "abort": {
       "already_configured": "Integration is already configured"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Poollab Options",
+        "description": "Configure Poollab integration settings",
+        "data": {
+          "scan_interval": "Update interval (seconds)"
+        }
+      }
+    }
   }
 }
