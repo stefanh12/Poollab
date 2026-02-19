@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Compte Poollab",
+        "description": "Entrez votre token API personnel LabCom\n\nChaque compte a un token unique. Obtenez le vôtre à: https://backend.labcom.cloud/graphiql\n\n1. Visitez le lien ci-dessus\n2. Votre token figure dans l'URL après ?token=\n3. Copiez et collez le token entièrement\n\n⚠️ Ne partagez jamais votre token personnel!",
+        "data": {
+          "token": "Token API Personnel"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Token API invalide",
+      "cannot_connect": "Impossible de se connecter à l'API Poollab",
+      "no_devices": "Aucun appareil trouvé",
+      "unknown": "Une erreur inconnue s'est produite"
+    },
+    "abort": {
+      "already_configured": "L'intégration est déjà configurée"
+    }
+  }
+}

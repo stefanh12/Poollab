@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "domain": "poollab",
+  "name": "Poollab",
+  "codeowners": ["@yourusername"],
+  "config_flow": true,
+  "documentation": "https://github.com/stefanh12/poollab",
+  "issue_tracker": "https://github.com/stefanh12/poollab/issues",
+  "requirements": [
+    "aiohttp>=3.8.0"
+  ],
+  "version": "1.0.0",
+  "homeassistant": "2026.1.0",
+  "iot_class": "cloud_polling"
+}

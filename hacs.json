@@ -1,0 +1,14 @@
+{
+  "name": "Poollab",
+  "homeassistant": "2024.1.0",
+  "documentation": "https://github.com/stefanh12poollab",
+  "issue_tracker": "https://github.com/stefanh12/poollab/issues",
+  "requirements": [],
+  "codeowners": ["@stefanh12"],
+  "brands": {
+    "poollab": {
+      "name": "Poollab",
+      "logo": "https://labcom.cloud/logo.png"
+    }
+  }
+}
