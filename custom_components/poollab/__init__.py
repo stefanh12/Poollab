@@ -57,7 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:
         _LOGGER.error("Error fetching devices: %s", err, exc_info=True)
         return False
-    
+
     if not devices:
         _LOGGER.error("No devices found in Poollab account")
         return False

@@ -178,7 +178,7 @@ class PoollabApiClient:
                     elapsed,
                 )
                 return self._measurements_cache
-        
+
         query = """
         {
           Measurements {
@@ -200,11 +200,11 @@ class PoollabApiClient:
         if result and "Measurements" in result:
             measurements = result["Measurements"]
             _LOGGER.info("Retrieved %d measurements from Labcom", len(measurements))
-            
+
             # Cache the measurements
             self._measurements_cache = measurements
             self._cache_time = datetime.now()
-            
+
             for idx, measurement in enumerate(measurements):
                 _LOGGER.debug(
                     "Measurement %d: account=%s, parameter=%s, value=%s, device_serial=%s, timestamp=%s",
