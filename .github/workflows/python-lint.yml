@@ -2,7 +2,7 @@
 on:
   pull_request:
     paths:
-      - "custom_components/holfuy/**"
+      - "custom_components/poollab/**"
   push:
     branches: [main, master]
 
@@ -31,4 +31,4 @@ jobs:
       - name: Run ruff
         run: |
           # Lint only the integration folder
-          ruff check custom_components/holfuy || (echo "ruff found issues" && exit 1)
+          ruff check custom_components/poollab || (echo "ruff found issues" && exit 1)
