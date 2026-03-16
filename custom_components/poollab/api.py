@@ -278,14 +278,17 @@ class PoollabApiClient:
         for measurement in measurements:
             device_serial = measurement.get("device_serial", "unknown")
             account = measurement.get("account", "unknown")
-            if device_serial not in devices:
+            # Skip tutorial/demo entries injected by the Labcom API
+            if device_serial.lower() == "tutorial" or measurement.get("operator_name", "").lower() == "tutorial":
+                continue
+            if account not in devices:
                 device = {
-                    "id": device_serial,
+                    "id": account,
                     "name": account,
                     "serialNumber": device_serial,
                     "account": account,
                 }
-                devices[device_serial] = device
+                devices[account] = device
                 _LOGGER.info(
                     "Added device: account=%s, serial=%s",
                     account,
