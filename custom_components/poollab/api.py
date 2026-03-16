@@ -3,6 +3,7 @@
 import asyncio
 import aiohttp
 import async_timeout
+from collections import Counter
 from typing import Any, Dict, Optional, List
 import logging
 from datetime import datetime
@@ -290,6 +291,17 @@ class PoollabApiClient:
                     account,
                     device_serial,
                 )
+
+        account_name_counts = Counter(
+            device.get("account") or "Poollab"
+            for device in devices.values()
+        )
+        for device in devices.values():
+            base_name = device.get("account") or "Poollab"
+            if account_name_counts[base_name] > 1:
+                device["name"] = f"{base_name} ({device['serialNumber']})"
+            elif not device.get("name"):
+                device["name"] = base_name
 
         device_list = list(devices.values())
         _LOGGER.info("Total unique devices found: %d", len(device_list))

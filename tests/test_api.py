@@ -133,6 +133,48 @@ async def test_get_devices():
 
 
 @pytest.mark.asyncio
+async def test_get_devices_keeps_multiple_pools_with_same_account_name():
+    """Test multiple pools are preserved when the account name is identical."""
+    session = MagicMock()
+    mock_response = AsyncMock()
+    mock_response.status = 200
+    mock_response.json = AsyncMock(
+        return_value={
+            "data": {
+                "Measurements": [
+                    {
+                        "account": "Hemma Pool",
+                        "device_serial": "POOL001",
+                        "parameter": "PL pH",
+                        "value": 7.2,
+                        "id": 1,
+                    },
+                    {
+                        "account": "Hemma Pool",
+                        "device_serial": "POOL002",
+                        "parameter": "PL pH",
+                        "value": 7.5,
+                        "id": 2,
+                    },
+                ]
+            }
+        }
+    )
+
+    session.post = AsyncMock(return_value=mock_response)
+
+    client = PoollabApiClient("test_token", session)
+    devices = await client.get_devices()
+
+    assert len(devices) == 2
+    assert {device["serialNumber"] for device in devices} == {"POOL001", "POOL002"}
+    assert {device["name"] for device in devices} == {
+        "Hemma Pool (POOL001)",
+        "Hemma Pool (POOL002)",
+    }
+
+
+@pytest.mark.asyncio
 async def test_get_active_chlorine():
     """Test getting active chlorine calculation."""
     session = MagicMock()

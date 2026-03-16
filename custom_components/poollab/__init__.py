@@ -68,8 +68,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up data update coordinator for each device
     coordinators = {}
     for device_idx, device in enumerate(devices):
-        # Use account name as device_id since it uniquely identifies each pool
-        device_id = device.get("account") or device.get("id")
+        device_id = device.get("serialNumber") or device.get("id") or device.get("account")
         device_name = device.get("name", f"Pool {device_idx + 1}")
 
         if not device_id:
