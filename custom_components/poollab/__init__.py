@@ -26,10 +26,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     session = async_get_clientsession(hass)
+    token = entry.options.get(CONF_TOKEN, entry.data[CONF_TOKEN])
 
     _LOGGER.info("Initializing Poollab API client from token")
     api_client = PoollabApiClient(
-        entry.data[CONF_TOKEN],
+        token,
         session,
     )
 
@@ -68,7 +69,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up data update coordinator for each device
     coordinators = {}
     for device_idx, device in enumerate(devices):
-        device_id = device.get("account") or device.get("id")
+        primary_id = device.get("account") or device.get("id")
+        fallback_id = device.get("serialNumber") or device.get("id")
+        device_id = primary_id or fallback_id
+
+        # Avoid key collisions when multiple pools share the same account name.
+        # This ensures all pools are preserved after token updates/reloads.
+        if device_id in coordinators and fallback_id:
+            device_id = fallback_id
+
         device_name = device.get("name", f"Pool {device_idx + 1}")
 
         if not device_id:

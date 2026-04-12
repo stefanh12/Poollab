@@ -20,6 +20,13 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    @staticmethod
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        """Get the options flow for this handler."""
+        return PoollabOptionsFlow(config_entry)
+
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
@@ -90,12 +97,21 @@ class PoollabOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
+        current_token = self.config_entry.options.get(
+            CONF_TOKEN,
+            self.config_entry.data.get(CONF_TOKEN, ""),
+        )
+
         options_schema = vol.Schema(
             {
                 vol.Optional(
                     "scan_interval",
                     default=self.config_entry.options.get("scan_interval", 300),
                 ): int,
+                vol.Optional(
+                    CONF_TOKEN,
+                    default=current_token,
+                ): str,
             }
         )
 
