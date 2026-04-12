@@ -314,8 +314,3 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
                     attributes[f"ac_{key}"] = value
 
         return attributes
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return self.coordinator.last_update_success
