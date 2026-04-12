@@ -118,16 +118,16 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
         latest_values = self.coordinator.data.get("latest_values", {})
         active_chlorine = self.coordinator.data.get("active_chlorine", {})
 
-        # Map sensor types to Labcom parameter names
+        # Map sensor types to Labcom parameter names with alternate names as fallback
         sensor_mapping = {
-            SENSOR_TYPE_PH: "PL pH",
-            SENSOR_TYPE_CL: "PL Chlorine Free",
-            SENSOR_TYPE_FREE_CL: "PL Chlorine Free",
-            SENSOR_TYPE_TOTAL_CL: "PL Total Chlorine",
-            SENSOR_TYPE_TEMP: "PL Temperature",
-            SENSOR_TYPE_ALK: "PL T-Alka",
-            SENSOR_TYPE_CYA: "PL Cyanuric Acid",
-            SENSOR_TYPE_SALT: "PL Salt",
+            SENSOR_TYPE_PH: ("PL pH",),
+            SENSOR_TYPE_CL: ("PL Chlorine Free",),
+            SENSOR_TYPE_FREE_CL: ("PL Chlorine Free",),
+            SENSOR_TYPE_TOTAL_CL: ("PL Total Chlorine", "PL Chlorine Total"),
+            SENSOR_TYPE_TEMP: ("PL Temperature",),
+            SENSOR_TYPE_ALK: ("PL T-Alka",),
+            SENSOR_TYPE_CYA: ("PL Cyanuric Acid",),
+            SENSOR_TYPE_SALT: ("PL Salt",),
         }
 
         # Map sensor types to ActiveChlorine keys
@@ -156,26 +156,36 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
                         return None
             return None
 
-        param_name = sensor_mapping.get(self.sensor_type)
-        if param_name and param_name in latest_values:
-            measurement = latest_values[param_name]
-            value = measurement.get("value")
-            if value is not None:
-                try:
-                    config = SENSOR_CONFIGS.get(self.sensor_type, {})
-                    precision = config.get("precision", 2)
-                    if isinstance(precision, int) and precision >= 0:
-                        return round(float(value), precision)
-                    return float(value)
-                except (ValueError, TypeError):
-                    return None
+        # Try primary and alternate parameter names
+        param_names = sensor_mapping.get(self.sensor_type)
+        if param_names:
+            for param_name in param_names:
+                if param_name in latest_values:
+                    measurement = latest_values[param_name]
+                    value = measurement.get("value")
+                    if value is not None:
+                        try:
+                            config = SENSOR_CONFIGS.get(self.sensor_type, {})
+                            precision = config.get("precision", 2)
+                            if isinstance(precision, int) and precision >= 0:
+                                return round(float(value), precision)
+                            return float(value)
+                        except (ValueError, TypeError):
+                            return None
 
         return None
 
     def _calculate_combined_chlorine(self, latest_values: dict) -> float:
-        """Calculate combined chlorine from total and free chlorine."""
+        """Calculate combined chlorine from total and free chlorine, or from active chlorine data.
+        
+        Combined Chlorine = Total Chlorine - Free Chlorine
+        
+        If Total Chlorine is not directly available, try to use bound_to_cya from ActiveChlorine data.
+        """
         free_cl_data = latest_values.get("PL Chlorine Free")
-        total_cl_data = latest_values.get("PL Total Chlorine")
+        
+        # Try primary and alternate names for total chlorine
+        total_cl_data = latest_values.get("PL Total Chlorine") or latest_values.get("PL Chlorine Total")
 
         if free_cl_data and total_cl_data:
             try:
@@ -187,7 +197,30 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             except (ValueError, TypeError):
                 return None
 
+        # Fallback: if total chlorine is not available but we have active chlorine data,
+        # we could theoretically use bound_to_cya, but that's not the same as combined chlorine
+        # So we return None to indicate data is unavailable
         return None
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available (has valid data)."""
+        # For combined and total chlorine, check if the required data exists
+        if self.sensor_type == SENSOR_TYPE_COMBINED_CL:
+            latest_values = self.coordinator.data.get("latest_values", {})
+            free_cl_data = latest_values.get("PL Chlorine Free")
+            total_cl_data = latest_values.get("PL Total Chlorine") or latest_values.get("PL Chlorine Total")
+            # Only available if we have both free and total chlorine data
+            return bool(free_cl_data and total_cl_data and self.native_value is not None)
+        
+        if self.sensor_type == SENSOR_TYPE_TOTAL_CL:
+            latest_values = self.coordinator.data.get("latest_values", {})
+            total_cl_data = latest_values.get("PL Total Chlorine") or latest_values.get("PL Chlorine Total")
+            # Only available if we have total chlorine data from the API
+            return bool(total_cl_data)
+        
+        # For other sensors, use the standard coordinator availability
+        return self.coordinator.last_update_success and self.native_value is not None
 
     @property
     def extra_state_attributes(self):
@@ -214,9 +247,11 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
                 attributes["description"] = "Total chlorine (free + combined)"
                 attributes["calculation"] = "Total = Free + Combined"
                 # Add measurement timestamp if available
-                total_cl_data = latest_values.get("PL Total Chlorine")
+                total_cl_data = latest_values.get("PL Total Chlorine") or latest_values.get("PL Chlorine Total")
                 if total_cl_data:
                     attributes["timestamp"] = total_cl_data.get("timestamp")
+                else:
+                    attributes["note"] = "Total chlorine not directly measured by Poollab device. This value would come from lab testing."
 
             elif self.sensor_type == SENSOR_TYPE_COMBINED_CL:
                 attributes["description"] = "Chlorine bound to contaminants (chloramines)"
@@ -226,29 +261,39 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
 
                 # Add source values for calculated sensor
                 free_cl_data = latest_values.get("PL Chlorine Free")
-                total_cl_data = latest_values.get("PL Total Chlorine")
+                total_cl_data = latest_values.get("PL Total Chlorine") or latest_values.get("PL Chlorine Total")
                 if free_cl_data:
                     attributes["free_chlorine"] = free_cl_data.get("value")
                     attributes["free_chlorine_timestamp"] = free_cl_data.get("timestamp")
                 if total_cl_data:
                     attributes["total_chlorine"] = total_cl_data.get("value")
                     attributes["total_chlorine_timestamp"] = total_cl_data.get("timestamp")
+                else:
+                    attributes["note"] = "Combined chlorine cannot be calculated without total chlorine measurement. Please add total chlorine via manual input or testing."
 
         # Add timestamp for any sensor
         sensor_mapping = {
-            SENSOR_TYPE_PH: "PL pH",
-            SENSOR_TYPE_CL: "PL Chlorine Free",
-            SENSOR_TYPE_TEMP: "PL Temperature",
-            SENSOR_TYPE_ALK: "PL T-Alka",
-            SENSOR_TYPE_CYA: "PL Cyanuric Acid",
-            SENSOR_TYPE_SALT: "PL Salt",
+            SENSOR_TYPE_PH: ("PL pH",),
+            SENSOR_TYPE_CL: ("PL Chlorine Free",),
+            SENSOR_TYPE_TEMP: ("PL Temperature",),
+            SENSOR_TYPE_ALK: ("PL T-Alka",),
+            SENSOR_TYPE_CYA: ("PL Cyanuric Acid",),
+            SENSOR_TYPE_SALT: ("PL Salt",),
         }
 
-        param_name = sensor_mapping.get(self.sensor_type)
-        if param_name and param_name in latest_values:
-            measurement = latest_values[param_name]
-            if "timestamp" not in attributes and measurement.get("timestamp"):
-                attributes["timestamp"] = measurement.get("timestamp")
+        param_names = sensor_mapping.get(self.sensor_type)
+        if param_names:
+            for param_name in param_names:
+                if param_name in latest_values:
+                    measurement = latest_values[param_name]
+                    # Add timestamp if not already present
+                    if "timestamp" not in attributes and measurement.get("timestamp"):
+                        attributes["timestamp"] = measurement.get("timestamp")
+                    # Add measurement count
+                    measurement_counts = self.coordinator.data.get("measurement_counts", {})
+                    if param_name in measurement_counts:
+                        attributes["measurement_count"] = measurement_counts[param_name]
+                    break
 
         # Add info for ActiveChlorine calculated sensors
         if self.sensor_type in [SENSOR_TYPE_UNBOUND_CL, SENSOR_TYPE_BOUND_CYA]:

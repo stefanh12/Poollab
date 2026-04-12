@@ -199,10 +199,14 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                     e,
                 )
 
+            # Build measurement counts for each parameter
+            measurement_counts = {param: len(param_list) for param, param_list in params_by_param.items()}
+
             return {
                 "device_id": self.device_id,
                 "measurements": device_measurements,
                 "latest_values": latest_values,
+                "measurement_counts": measurement_counts,
                 "active_chlorine": active_chlorine_data,
             }
         except asyncio.TimeoutError as err:

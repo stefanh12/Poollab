@@ -172,7 +172,7 @@ class PoollabApiClient:
     async def verify_token(self) -> bool:
         """Verify the API token is valid by querying measurements."""
         result = await self.get_measurements()
-        return result is not None and len(result) >= 0
+        return result is not None and len(result) > 0
 
     async def get_measurements(self) -> Optional[List[Dict[str, Any]]]:
         """Get all measurements from Labcom cloud."""
@@ -281,14 +281,16 @@ class PoollabApiClient:
             # Skip tutorial/demo entries injected by the Labcom API
             if device_serial.lower() == "tutorial" or measurement.get("operator_name", "").lower() == "tutorial":
                 continue
-            if account not in devices:
+            # Use (account, serial_number) tuple as key to keep multiple devices with same account
+            device_key = (account, device_serial)
+            if device_key not in devices:
                 device = {
                     "id": account,
                     "name": account,
                     "serialNumber": device_serial,
                     "account": account,
                 }
-                devices[account] = device
+                devices[device_key] = device
                 _LOGGER.info(
                     "Added device: account=%s, serial=%s",
                     account,
