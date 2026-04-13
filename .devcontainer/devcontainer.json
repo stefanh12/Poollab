@@ -1,4 +1,4 @@
-{
+a{
   "name": "Home Assistant Add-on Dev Container",
   "image": "ghcr.io/home-assistant/devcontainer:2-addons",
   "forwardPorts": [8123, 4357],
