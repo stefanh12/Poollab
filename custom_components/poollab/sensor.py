@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -110,6 +110,10 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
         # Set device class for timestamp sensor
         if sensor_type == SENSOR_TYPE_LAST_MEASUREMENT:
             self._attr_device_class = SensorDeviceClass.TIMESTAMP
+
+        # Mark diagnostic sensors
+        if sensor_type in (SENSOR_TYPE_MEASUREMENT_COUNT, SENSOR_TYPE_LAST_MEASUREMENT):
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
         # Set device info to group sensors by pool
         self._attr_device_info = {
