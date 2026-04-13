@@ -1,6 +1,8 @@
 """Sensor platform for Poollab integration."""
 
-from homeassistant.components.sensor import SensorEntity
+from datetime import datetime, timezone
+
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -21,6 +23,8 @@ from .const import (
     SENSOR_TYPE_SALT,
     SENSOR_TYPE_UNBOUND_CL,
     SENSOR_TYPE_BOUND_CYA,
+    SENSOR_TYPE_MEASUREMENT_COUNT,
+    SENSOR_TYPE_LAST_MEASUREMENT,
 )
 
 
@@ -52,6 +56,8 @@ async def async_setup_entry(
             SENSOR_TYPE_SALT,
             SENSOR_TYPE_UNBOUND_CL,
             SENSOR_TYPE_BOUND_CYA,
+            SENSOR_TYPE_MEASUREMENT_COUNT,
+            SENSOR_TYPE_LAST_MEASUREMENT,
         ]:
             sensors.append(
                 PoollabSensor(
@@ -101,6 +107,10 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
         else:
             self._attr_native_unit_of_measurement = unit
 
+        # Set device class for timestamp sensor
+        if sensor_type == SENSOR_TYPE_LAST_MEASUREMENT:
+            self._attr_device_class = SensorDeviceClass.TIMESTAMP
+
         # Set device info to group sensors by pool
         self._attr_device_info = {
             "identifiers": {(DOMAIN, device_id)},
@@ -139,6 +149,33 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
         # Handle calculated sensors
         if self.sensor_type == SENSOR_TYPE_COMBINED_CL:
             return self._calculate_combined_chlorine(latest_values)
+
+        # Handle measurement count sensor
+        if self.sensor_type == SENSOR_TYPE_MEASUREMENT_COUNT:
+            measurements = self.coordinator.data.get("measurements", [])
+            return len(measurements)
+
+        # Handle last measurement time sensor
+        if self.sensor_type == SENSOR_TYPE_LAST_MEASUREMENT:
+            raw_ts = self.coordinator.data.get("last_measurement_time")
+            if raw_ts is None:
+                return None
+            try:
+                if isinstance(raw_ts, (int, float)):
+                    ts = float(raw_ts)
+                    ts = ts / 1000.0 if ts > 1e12 else ts
+                    return datetime.fromtimestamp(ts, tz=timezone.utc)
+                ts_str = str(raw_ts).strip()
+                if ts_str.isdigit():
+                    ts = float(ts_str)
+                    ts = ts / 1000.0 if ts > 1e12 else ts
+                    return datetime.fromtimestamp(ts, tz=timezone.utc)
+                dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt
+            except (ValueError, TypeError, OSError):
+                return None
 
         # Handle ActiveChlorine sensors
         if self.sensor_type in active_chlorine_mapping:
@@ -226,6 +263,10 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self):
         """Return additional attributes."""
         if not self.coordinator.data:
+            return {}
+
+        # Diagnostic sensors have no extra attributes
+        if self.sensor_type in (SENSOR_TYPE_MEASUREMENT_COUNT, SENSOR_TYPE_LAST_MEASUREMENT):
             return {}
 
         attributes = {}

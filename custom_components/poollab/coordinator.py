@@ -3,6 +3,7 @@
 import asyncio
 from datetime import datetime, timedelta
 import logging
+from typing import Optional
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
@@ -230,12 +231,22 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
             # Build measurement counts for each parameter
             measurement_counts = {param: len(param_list) for param, param_list in params_by_param.items()}
 
+            # Find the most recent measurement timestamp across all parameters
+            last_measurement_time: Optional[str] = None
+            if device_measurements:
+                try:
+                    most_recent = max(device_measurements, key=_timestamp_sort_key)
+                    last_measurement_time = most_recent.get("timestamp")
+                except (ValueError, TypeError) as e:
+                    _LOGGER.warning("Error finding last measurement time for device %s: %s", self.device_id, e)
+
             return {
                 "device_id": self.device_id,
                 "measurements": device_measurements,
                 "latest_values": latest_values,
                 "measurement_counts": measurement_counts,
                 "active_chlorine": active_chlorine_data,
+                "last_measurement_time": last_measurement_time,
             }
         except asyncio.TimeoutError as err:
             raise UpdateFailed(f"Timeout connecting to Poollab API: {err}") from err
