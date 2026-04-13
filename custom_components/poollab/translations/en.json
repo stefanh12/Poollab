@@ -23,7 +23,8 @@
       "unknown": "An unknown error occurred"
     },
     "abort": {
-      "already_configured": "Integration is already configured"
+      "already_configured": "Integration is already configured",
+      "reconfigure_successful": "Reconfiguration was successful"
     }
   }
 }
