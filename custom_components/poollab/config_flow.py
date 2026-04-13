@@ -81,7 +81,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle reconfiguration of an existing config entry."""
         errors: Dict[str, str] = {}
-        reconfigure_entry = self._get_reconfigure_entry()
+        reconfigure_entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
 
         if user_input is not None:
             token = user_input[CONF_TOKEN]

@@ -4,7 +4,7 @@
     {
       "label": "Copy Integration to custom_components",
       "type": "shell",
-     "command": "sudo rm -rf /mnt/supervisor/homeassistant/custom_components/poollab && sudo mkdir -p /mnt/supervisor/homeassistant/custom_components/poollab && sudo cp -r /addons/holfuy/custom_components/poollab/* /mnt/supervisor/homeassistant/custom_components/poollab/ && echo 'Copied integration to /mnt/supervisor/homeassistant/custom_components/poollab'"
+     "command": "sudo rm -rf /mnt/supervisor/homeassistant/custom_components/poollab && sudo mkdir -p /mnt/supervisor/homeassistant/custom_components/poollab && sudo cp -r /addons/Poollab/custom_components/poollab/* /mnt/supervisor/homeassistant/custom_components/poollab/ && echo 'Copied integration to /mnt/supervisor/homeassistant/custom_components/poollab'"
     },
     {
       "label": "Restart HA Core",

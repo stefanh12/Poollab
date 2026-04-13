@@ -3,6 +3,7 @@
   "name": "Poollab",
   "codeowners": ["@yourusername"],
   "config_flow": true,
+  "supports_reconfigure": true,
   "documentation": "https://github.com/stefanh12/poollab",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/stefanh12/poollab/issues",
