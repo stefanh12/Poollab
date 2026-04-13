@@ -12,7 +12,16 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .api import PoollabApiClient
-from .const import DOMAIN, SCAN_INTERVAL
+from .const import (
+    DOMAIN,
+    SCAN_INTERVAL,
+    SENSOR_CONFIGS,
+    SENSOR_TYPE_PH,
+    SENSOR_TYPE_FREE_CL,
+    SENSOR_TYPE_CYA,
+    SENSOR_TYPE_TEMP,
+    is_measurement_value_in_range,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -178,42 +187,69 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                     cya = float(cya_data.get("value", 0.0)) if cya_data else 0.0
                     temperature = float(temp_data.get("value", 25.0)) if temp_data else 25.0
 
-                    _LOGGER.debug(
-                        "Calling ActiveChlorine API for device %s with temp=%s, pH=%s, chlorine=%s, cya=%s",
-                        self.device_id,
-                        temperature,
-                        ph,
-                        chlorine,
-                        cya,
-                    )
-
-                    try:
-                        active_chlorine_result = await asyncio.wait_for(
-                            self.api_client.get_active_chlorine(temperature, ph, chlorine, cya),
-                            timeout=20.0
-                        )
-
-                        if active_chlorine_result:
-                            active_chlorine_data = active_chlorine_result
-                            _LOGGER.info(
-                                "Device %s - ActiveChlorine calculated: unbound_chlorine=%s, bound_to_cya=%s",
+                    # Validate inputs are within reasonable ranges before calling the API
+                    invalid_inputs = []
+                    for sensor_type, param_name, value in [
+                        (SENSOR_TYPE_PH, "pH", ph),
+                        (SENSOR_TYPE_FREE_CL, "chlorine", chlorine),
+                        (SENSOR_TYPE_CYA, "cya", cya),
+                        (SENSOR_TYPE_TEMP, "temperature", temperature),
+                    ]:
+                        if not is_measurement_value_in_range(sensor_type, value):
+                            cfg = SENSOR_CONFIGS.get(sensor_type, {})
+                            _LOGGER.warning(
+                                "ActiveChlorine input %s=%s is outside valid range [%s, %s] for device %s, skipping calculation",
+                                param_name,
+                                value,
+                                cfg.get("min"),
+                                cfg.get("max"),
                                 self.device_id,
-                                active_chlorine_data.get("unbound_chlorine"),
-                                active_chlorine_data.get("bound_to_cya"),
                             )
-                        else:
-                            _LOGGER.warning("Failed to calculate ActiveChlorine for device %s", self.device_id)
-                    except asyncio.TimeoutError:
-                        _LOGGER.warning(
-                            "Timeout calculating ActiveChlorine for device %s, continuing without it",
+                            invalid_inputs.append(param_name)
+
+                    if invalid_inputs:
+                        _LOGGER.debug(
+                            "Skipping ActiveChlorine calculation for device %s due to out-of-range inputs: %s",
                             self.device_id,
+                            invalid_inputs,
                         )
-                    except Exception as e:
-                        _LOGGER.warning(
-                            "Error calculating ActiveChlorine for device %s: %s, continuing without it",
+                    else:
+                        _LOGGER.debug(
+                            "Calling ActiveChlorine API for device %s with temp=%s, pH=%s, chlorine=%s, cya=%s",
                             self.device_id,
-                            e,
+                            temperature,
+                            ph,
+                            chlorine,
+                            cya,
                         )
+
+                        try:
+                            active_chlorine_result = await asyncio.wait_for(
+                                self.api_client.get_active_chlorine(temperature, ph, chlorine, cya),
+                                timeout=20.0
+                            )
+
+                            if active_chlorine_result:
+                                active_chlorine_data = active_chlorine_result
+                                _LOGGER.info(
+                                    "Device %s - ActiveChlorine calculated: unbound_chlorine=%s, bound_to_cya=%s",
+                                    self.device_id,
+                                    active_chlorine_data.get("unbound_chlorine"),
+                                    active_chlorine_data.get("bound_to_cya"),
+                                )
+                            else:
+                                _LOGGER.warning("Failed to calculate ActiveChlorine for device %s", self.device_id)
+                        except asyncio.TimeoutError:
+                            _LOGGER.warning(
+                                "Timeout calculating ActiveChlorine for device %s, continuing without it",
+                                self.device_id,
+                            )
+                        except Exception as e:
+                            _LOGGER.warning(
+                                "Error calculating ActiveChlorine for device %s: %s, continuing without it",
+                                self.device_id,
+                                e,
+                            )
                 else:
                     _LOGGER.debug(
                         "Insufficient data for ActiveChlorine calculation for device %s (pH: %s, Chlorine: %s)",
