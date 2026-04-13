@@ -231,6 +231,36 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
         attributes = {}
         latest_values = self.coordinator.data.get("latest_values", {})
 
+        # Expose missing-source diagnostics for chlorine-related sensors
+        if self.sensor_type in [
+            SENSOR_TYPE_CL,
+            SENSOR_TYPE_FREE_CL,
+            SENSOR_TYPE_TOTAL_CL,
+            SENSOR_TYPE_COMBINED_CL,
+            SENSOR_TYPE_UNBOUND_CL,
+            SENSOR_TYPE_BOUND_CYA,
+        ]:
+            missing_parameters = []
+
+            if self.sensor_type in [SENSOR_TYPE_CL, SENSOR_TYPE_FREE_CL, SENSOR_TYPE_UNBOUND_CL, SENSOR_TYPE_BOUND_CYA]:
+                if "PL Chlorine Free" not in latest_values:
+                    missing_parameters.append("PL Chlorine Free")
+
+            if self.sensor_type in [SENSOR_TYPE_TOTAL_CL, SENSOR_TYPE_COMBINED_CL]:
+                if (
+                    "PL Total Chlorine" not in latest_values
+                    and "PL Chlorine Total" not in latest_values
+                ):
+                    missing_parameters.append("PL Total Chlorine/PL Chlorine Total")
+
+            if self.sensor_type in [SENSOR_TYPE_UNBOUND_CL, SENSOR_TYPE_BOUND_CYA]:
+                if "PL pH" not in latest_values:
+                    missing_parameters.append("PL pH")
+
+            if missing_parameters:
+                attributes["missing_parameters"] = missing_parameters
+                attributes["diagnostic"] = "Missing required measurements for this sensor"
+
         # Add chlorine chemistry info for chlorine sensors
         if self.sensor_type in [SENSOR_TYPE_FREE_CL, SENSOR_TYPE_TOTAL_CL, SENSOR_TYPE_COMBINED_CL]:
 

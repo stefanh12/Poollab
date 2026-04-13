@@ -7,6 +7,13 @@
         "data": {
           "token": "Token API Personnel"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigurer Poollab",
+        "description": "Mettez à jour votre token API personnel LabCom.\n\nObtenez-le ici : {token_url}",
+        "data": {
+          "token": "Token API Personnel"
+        }
       }
     },
     "error": {
