@@ -1,7 +1,7 @@
 """Data update coordinator for Poollab integration."""
 
 import asyncio
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 
 from homeassistant.core import HomeAssistant
@@ -14,6 +14,34 @@ from .api import PoollabApiClient
 from .const import DOMAIN, SCAN_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _timestamp_sort_key(measurement: dict) -> float:
+    """Return a sortable timestamp key supporting unix and ISO formats."""
+    raw_ts = measurement.get("timestamp")
+    if raw_ts is None:
+        return 0.0
+
+    # Numeric unix timestamp (seconds or milliseconds)
+    if isinstance(raw_ts, (int, float)):
+        ts = float(raw_ts)
+        return ts / 1000.0 if ts > 1e12 else ts
+
+    # Numeric string unix timestamp
+    if isinstance(raw_ts, str):
+        ts_str = raw_ts.strip()
+        if ts_str.isdigit():
+            ts = float(ts_str)
+            return ts / 1000.0 if ts > 1e12 else ts
+
+        # ISO string, commonly ending with Z
+        try:
+            dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+            return dt.timestamp()
+        except ValueError:
+            return 0.0
+
+    return 0.0
 
 
 class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
@@ -103,7 +131,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                 try:
                     sorted_list = sorted(
                         param_list,
-                        key=lambda x: int(x.get("timestamp", 0)),
+                        key=_timestamp_sort_key,
                         reverse=True
                     )
                     latest_measurement = sorted_list[0]

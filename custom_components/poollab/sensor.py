@@ -230,6 +230,11 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
 
         attributes = {}
         latest_values = self.coordinator.data.get("latest_values", {})
+        measurement_counts = self.coordinator.data.get("measurement_counts", {})
+        measurements = self.coordinator.data.get("measurements", [])
+
+        # Always expose total measurements found for this pool/device.
+        attributes["pool_measurement_count"] = len(measurements)
 
         # Expose missing-source diagnostics for chlorine-related sensors
         if self.sensor_type in [
@@ -305,6 +310,8 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
         sensor_mapping = {
             SENSOR_TYPE_PH: ("PL pH",),
             SENSOR_TYPE_CL: ("PL Chlorine Free",),
+            SENSOR_TYPE_FREE_CL: ("PL Chlorine Free",),
+            SENSOR_TYPE_TOTAL_CL: ("PL Total Chlorine", "PL Chlorine Total"),
             SENSOR_TYPE_TEMP: ("PL Temperature",),
             SENSOR_TYPE_ALK: ("PL T-Alka",),
             SENSOR_TYPE_CYA: ("PL Cyanuric Acid",),
@@ -320,10 +327,18 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
                     if "timestamp" not in attributes and measurement.get("timestamp"):
                         attributes["timestamp"] = measurement.get("timestamp")
                     # Add measurement count
-                    measurement_counts = self.coordinator.data.get("measurement_counts", {})
                     if param_name in measurement_counts:
                         attributes["measurement_count"] = measurement_counts[param_name]
                     break
+
+        # Combined chlorine is calculated from free and total chlorine sources.
+        if self.sensor_type == SENSOR_TYPE_COMBINED_CL:
+            free_count = measurement_counts.get("PL Chlorine Free")
+            total_count = measurement_counts.get("PL Total Chlorine") or measurement_counts.get("PL Chlorine Total")
+            if free_count is not None:
+                attributes["free_chlorine_measurement_count"] = free_count
+            if total_count is not None:
+                attributes["total_chlorine_measurement_count"] = total_count
 
         # Add info for ActiveChlorine calculated sensors
         if self.sensor_type in [SENSOR_TYPE_UNBOUND_CL, SENSOR_TYPE_BOUND_CYA]:
