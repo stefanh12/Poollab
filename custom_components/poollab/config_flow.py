@@ -19,6 +19,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Poollab."""
 
     VERSION = 1
+    MINOR_VERSION = 1
 
     @staticmethod
     def async_get_options_flow(
