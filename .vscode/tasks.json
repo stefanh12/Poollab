@@ -1,0 +1,39 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+    {
+      "label": "Copy Integration to custom_components",
+      "type": "shell",
+     "command": "sudo rm -rf /mnt/supervisor/homeassistant/custom_components/poollab && sudo mkdir -p /mnt/supervisor/homeassistant/custom_components/poollab && sudo cp -r /addons/holfuy/custom_components/poollab/* /mnt/supervisor/homeassistant/custom_components/poollab/ && echo 'Copied integration to /mnt/supervisor/homeassistant/custom_components/poollab'"
+    },
+    {
+      "label": "Restart HA Core",
+      "type": "shell",
+      "command": "ha core restart && echo 'HA Core Restarted'",
+      "problemMatcher": []
+    },
+    {
+      "label": "Copy + Restart HA",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Copy Integration to custom_components",
+        "Restart HA Core"
+      ],
+      "problemMatcher": []
+    },
+      {
+        "label": "Start Home Assistant",
+        "type": "shell",
+        "command": "sudo chmod a+x /usr/bin/supervisor* && sudo -E supervisor_run",
+        "group": {
+          "kind": "test",
+          "isDefault": true
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        },
+        "problemMatcher": []
+      }
+    ]
+  }
