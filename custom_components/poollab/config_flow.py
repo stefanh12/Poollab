@@ -21,13 +21,6 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     MINOR_VERSION = 1
 
-    @staticmethod
-    def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
-    ) -> config_entries.OptionsFlow:
-        """Get the options flow for this handler."""
-        return PoollabOptionsFlow()
-
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
@@ -100,13 +93,9 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if await api_client.verify_token():
                     devices = await api_client.get_devices()
                     if devices:
-                        updated_options = dict(reconfigure_entry.options)
-                        updated_options[CONF_TOKEN] = token
-
                         return self.async_update_reload_and_abort(
                             reconfigure_entry,
                             data_updates={CONF_TOKEN: token},
-                            options=updated_options,
                         )
                     errors["base"] = "no_devices"
                 else:
@@ -117,10 +106,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.error("Unexpected error during reconfigure: %s", err)
                 errors["base"] = "unknown"
 
-        current_token = reconfigure_entry.options.get(
-            CONF_TOKEN,
-            reconfigure_entry.data.get(CONF_TOKEN, ""),
-        )
+        current_token = reconfigure_entry.data.get(CONF_TOKEN, "")
 
         data_schema = vol.Schema(
             {
@@ -137,33 +123,3 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
-
-class PoollabOptionsFlow(config_entries.OptionsFlow):
-    """Handle options for Poollab."""
-
-    async def async_step_init(
-        self, user_input: Optional[Dict[str, Any]] = None
-    ) -> FlowResult:
-        """Manage options."""
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-
-        current_token = self.config_entry.options.get(
-            CONF_TOKEN,
-            self.config_entry.data.get(CONF_TOKEN, ""),
-        )
-
-        options_schema = vol.Schema(
-            {
-                vol.Optional(
-                    "scan_interval",
-                    default=self.config_entry.options.get("scan_interval", 300),
-                ): int,
-                vol.Optional(
-                    CONF_TOKEN,
-                    default=current_token,
-                ): str,
-            }
-        )
-
-        return self.async_show_form(step_id="init", data_schema=options_schema)
