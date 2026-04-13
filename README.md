@@ -38,7 +38,7 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
 1. Go to Settings → Devices & Services → Integrations
 2. Click "Create Integration" and search for "Poollab"
 3. **Get your personal API token:**
-   - Visit: https://backend.labcom.cloud/graphiql
+   - Visit: https://labcom.cloud
    - Your token is in the URL: `?token=YOUR_PERSONAL_TOKEN`
    - Copy the entire token string
 4. Paste your **personal token** into the Home Assistant config
