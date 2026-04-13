@@ -1,5 +1,6 @@
 """Sensor platform for Poollab integration."""
 
+import logging
 from datetime import datetime, timezone
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
@@ -25,7 +26,10 @@ from .const import (
     SENSOR_TYPE_BOUND_CYA,
     SENSOR_TYPE_MEASUREMENT_COUNT,
     SENSOR_TYPE_LAST_MEASUREMENT,
+    is_measurement_value_in_range,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -172,11 +176,22 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
                 value = active_chlorine.get(ac_key)
                 if value is not None:
                     try:
+                        float_value = float(value)
+                        if not is_measurement_value_in_range(self.sensor_type, float_value):
+                            config = SENSOR_CONFIGS.get(self.sensor_type, {})
+                            _LOGGER.warning(
+                                "Value %s for %s is outside valid range [%s, %s], ignoring",
+                                float_value,
+                                self.sensor_type,
+                                config.get("min"),
+                                config.get("max"),
+                            )
+                            return None
                         config = SENSOR_CONFIGS.get(self.sensor_type, {})
                         precision = config.get("precision", 2)
                         if isinstance(precision, int) and precision >= 0:
-                            return round(float(value), precision)
-                        return float(value)
+                            return round(float_value, precision)
+                        return float_value
                     except (ValueError, TypeError):
                         return None
             return None
@@ -190,11 +205,23 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
                     value = measurement.get("value")
                     if value is not None:
                         try:
+                            float_value = float(value)
+                            if not is_measurement_value_in_range(self.sensor_type, float_value):
+                                config = SENSOR_CONFIGS.get(self.sensor_type, {})
+                                _LOGGER.warning(
+                                    "Value %s for parameter %s (%s) is outside valid range [%s, %s], ignoring",
+                                    float_value,
+                                    param_name,
+                                    self.sensor_type,
+                                    config.get("min"),
+                                    config.get("max"),
+                                )
+                                return None
                             config = SENSOR_CONFIGS.get(self.sensor_type, {})
                             precision = config.get("precision", 2)
                             if isinstance(precision, int) and precision >= 0:
-                                return round(float(value), precision)
-                            return float(value)
+                                return round(float_value, precision)
+                            return float_value
                         except (ValueError, TypeError):
                             return None
 

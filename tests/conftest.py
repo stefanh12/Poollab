@@ -21,6 +21,10 @@ sys.modules['homeassistant.helpers.update_coordinator'] = MagicMock()
 sys.modules['homeassistant.helpers.entity'] = MagicMock()
 sys.modules['homeassistant.helpers.entity_platform'] = MagicMock()
 
+# Mock components and its submodules
+sys.modules['homeassistant.components'] = MagicMock()
+sys.modules['homeassistant.components.sensor'] = MagicMock()
+
 # Add custom_components to the path so poollab can be imported
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'custom_components'))
 

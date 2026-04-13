@@ -149,3 +149,15 @@ SENSOR_CONFIGS = {
         "icon": "mdi:clock-outline",
     },
 }
+
+
+def is_measurement_value_in_range(sensor_type: str, value: float) -> bool:
+    """Return True if value is within the configured min/max range for this sensor type."""
+    config = SENSOR_CONFIGS.get(sensor_type, {})
+    min_val = config.get("min")
+    max_val = config.get("max")
+    if min_val is not None and value < min_val:
+        return False
+    if max_val is not None and value > max_val:
+        return False
+    return True
