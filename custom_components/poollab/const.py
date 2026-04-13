@@ -36,6 +36,10 @@ SENSOR_TYPE_SALT = "salt"
 SENSOR_TYPE_UNBOUND_CL = "unbound_chlorine"  # Free chlorine available for sanitization
 SENSOR_TYPE_BOUND_CYA = "bound_to_cya"  # Chlorine bound to CYA
 
+# Device diagnostic sensors
+SENSOR_TYPE_MEASUREMENT_COUNT = "measurement_count"  # Total number of measurements for the device
+SENSOR_TYPE_LAST_MEASUREMENT = "last_measurement"  # Timestamp of the most recent measurement
+
 # Sensor configurations
 SENSOR_CONFIGS = {
     SENSOR_TYPE_PH: {
@@ -133,5 +137,15 @@ SENSOR_CONFIGS = {
         "max": 5,
         "description": "Chlorine bound to stabilizer (CYA)",
         "calculated": True,
+    },
+    SENSOR_TYPE_MEASUREMENT_COUNT: {
+        "name": "Measurement Count",
+        "unit": None,
+        "icon": "mdi:counter",
+    },
+    SENSOR_TYPE_LAST_MEASUREMENT: {
+        "name": "Last Measurement",
+        "unit": None,
+        "icon": "mdi:clock-outline",
     },
 }
