@@ -26,6 +26,36 @@ async def async_get_config_entry_diagnostics(
         device_info = device_data.get("device", {})
         device_name = device_data.get("name")
 
+        # Build measurement summary from coordinator data
+        coordinator_data: dict = getattr(coordinator, "data", None) or {}
+        latest_values: dict = coordinator_data.get("latest_values", {})
+        measurements: list = coordinator_data.get("measurements", [])
+        measurement_summary = {
+            param: {
+                "value": m.get("value"),
+                "unit": m.get("unit"),
+                "timestamp": m.get("timestamp"),
+            }
+            for param, m in latest_values.items()
+        }
+
+        # Build API errors report — show all tracked keys even when None so
+        # the section is always present and its absence is clearly visible.
+        raw_api_errors: dict = getattr(coordinator, "last_api_errors", {})
+        api_errors_report = {
+            key: (
+                {
+                    "message": val.get("message"),
+                    "type": val.get("type"),
+                    "timestamp": val.get("timestamp"),
+                }
+                if val is not None
+                else None
+            )
+            for key, val in raw_api_errors.items()
+        }
+        has_active_errors = any(v is not None for v in raw_api_errors.values())
+
         devices.append(
             {
                 "id": device_id,
@@ -38,9 +68,13 @@ async def async_get_config_entry_diagnostics(
                         getattr(coordinator, "last_update_success_time", None)
                     ),
                     "last_exception": str(getattr(coordinator, "last_exception", None)),
-                    "data_available": bool(getattr(coordinator, "data", None)),
+                    "total_measurements_fetched": len(measurements),
+                    "latest_measurements": measurement_summary,
                 },
-                "api_errors": getattr(coordinator, "last_api_errors", {}),
+                "api_errors": {
+                    "has_active_errors": has_active_errors,
+                    "errors": api_errors_report,
+                },
             }
         )
 
