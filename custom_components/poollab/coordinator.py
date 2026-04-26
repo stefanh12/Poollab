@@ -67,6 +67,11 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
         self.api_client = api_client
         self.device_id = device_id
         self.data = {}
+        self._last_api_errors: dict[str, dict | None] = {
+            "measurements": None,
+            "active_chlorine": None,
+            "update": None,
+        }
 
         super().__init__(
             hass,
@@ -74,6 +79,29 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_interval=timedelta(seconds=SCAN_INTERVAL),
         )
+
+    @property
+    def last_api_errors(self) -> dict[str, dict | None]:
+        """Return the latest API-related errors for diagnostics."""
+        return self._last_api_errors
+
+    def _set_api_error(
+        self,
+        error_key: str,
+        message: str,
+        error_type: str,
+    ) -> None:
+        """Store an API error for later diagnostics."""
+        self._last_api_errors[error_key] = {
+            "message": message,
+            "type": error_type,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "device_id": self.device_id,
+        }
+
+    def _clear_api_error(self, error_key: str) -> None:
+        """Clear a stored API error when call path succeeds again."""
+        self._last_api_errors[error_key] = None
 
     async def _async_update_data(self) -> dict:
         """Fetch data from Poollab API."""
@@ -85,8 +113,19 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                     self.api_client.get_measurements(),
                     timeout=30.0
                 )
+                self._clear_api_error("measurements")
             except asyncio.TimeoutError:
                 _LOGGER.error("Timeout fetching measurements for device %s", self.device_id)
+                self._set_api_error(
+                    "measurements",
+                    "Timeout while fetching measurements from backend",
+                    "timeout",
+                )
+                self._set_api_error(
+                    "update",
+                    "Update failed due to measurements timeout",
+                    "update_failed",
+                )
                 raise UpdateFailed(f"Timeout fetching measurements for device {self.device_id}")
 
             if measurements is None:
@@ -231,6 +270,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
 
                             if active_chlorine_result:
                                 active_chlorine_data = active_chlorine_result
+                                self._clear_api_error("active_chlorine")
                                 _LOGGER.info(
                                     "Device %s - ActiveChlorine calculated: unbound_chlorine=%s, bound_to_cya=%s",
                                     self.device_id,
@@ -239,16 +279,31 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                                 )
                             else:
                                 _LOGGER.warning("Failed to calculate ActiveChlorine for device %s", self.device_id)
+                                self._set_api_error(
+                                    "active_chlorine",
+                                    "ActiveChlorine backend returned no data",
+                                    "empty_response",
+                                )
                         except asyncio.TimeoutError:
                             _LOGGER.warning(
                                 "Timeout calculating ActiveChlorine for device %s, continuing without it",
                                 self.device_id,
+                            )
+                            self._set_api_error(
+                                "active_chlorine",
+                                "Timeout while calculating ActiveChlorine",
+                                "timeout",
                             )
                         except Exception as e:
                             _LOGGER.warning(
                                 "Error calculating ActiveChlorine for device %s: %s, continuing without it",
                                 self.device_id,
                                 e,
+                            )
+                            self._set_api_error(
+                                "active_chlorine",
+                                str(e),
+                                "exception",
                             )
                 else:
                     _LOGGER.debug(
@@ -285,9 +340,19 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                 "last_measurement_time": last_measurement_time,
             }
         except asyncio.TimeoutError as err:
+            self._set_api_error(
+                "update",
+                f"Timeout connecting to Poollab API: {err}",
+                "timeout",
+            )
             raise UpdateFailed(f"Timeout connecting to Poollab API: {err}") from err
         except UpdateFailed:
             raise
         except Exception as err:
             _LOGGER.error("Error updating data for device %s: %s", self.device_id, err, exc_info=True)
+            self._set_api_error(
+                "update",
+                str(err),
+                "exception",
+            )
             raise UpdateFailed(f"Error communicating with Poollab API: {err}") from err

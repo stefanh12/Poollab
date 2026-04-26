@@ -15,12 +15,35 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> Dict[str, Any]:
     """Return diagnostics for a config entry."""
-    
+
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    
-    coordinator = data.get("coordinator")
-    device_id = data.get("device_id")
-    
+
+    coordinators = data.get("coordinators", {})
+    devices = []
+
+    for device_id, device_data in coordinators.items():
+        coordinator = device_data.get("coordinator")
+        device_info = device_data.get("device", {})
+        device_name = device_data.get("name")
+
+        devices.append(
+            {
+                "id": device_id,
+                "name": device_name,
+                "account": device_info.get("account"),
+                "serial_number": device_info.get("serialNumber"),
+                "coordinator": {
+                    "last_update_success": getattr(coordinator, "last_update_success", None),
+                    "last_update_success_time": str(
+                        getattr(coordinator, "last_update_success_time", None)
+                    ),
+                    "last_exception": str(getattr(coordinator, "last_exception", None)),
+                    "data_available": bool(getattr(coordinator, "data", None)),
+                },
+                "api_errors": getattr(coordinator, "last_api_errors", {}),
+            }
+        )
+
     return async_redact_data(
         {
             "entry": {
@@ -29,14 +52,7 @@ async def async_get_config_entry_diagnostics(
                 "options": entry.options,
                 "unique_id": entry.unique_id,
             },
-            "coordinator": {
-                "last_update_success": coordinator.last_update_success if coordinator else None,
-                "last_update_time": str(coordinator.last_update) if coordinator else None,
-                "data_available": bool(coordinator.data) if coordinator else False,
-            },
-            "device": {
-                "id": device_id,
-            },
+            "devices": devices,
         },
         TO_REDACT,
     )
