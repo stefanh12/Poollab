@@ -11,7 +11,6 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
 - ⚗️ Alkalinity tracking
 - 🛡️ Stabilizer (CYA) monitoring
 - 🧂 Salt level monitoring
-- ☁️ Cloud-based GraphQL API integration
 - 🔄 Automatic updates every 5 minutes
 - ✅ Data validation — out-of-range values are discarded automatically
 
