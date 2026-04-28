@@ -66,7 +66,7 @@ The integration creates the following sensors for each pool/device:
 
 | Sensor | Description | Unit | Valid Range |
 |--------|-------------|------|-------------|
-| **pH** | Current pool pH | — | 0 – 14 |
+| **pH** | Current pool pH | pH | 0 – 14 |
 | **Chlorine** | General chlorine level (legacy) | ppm | 0 – 10 |
 | **Free Chlorine** | Active chlorine available for sanitization | ppm | 0 – 10 |
 | **Total Chlorine** | Free + combined chlorine | ppm | 0 – 10 |
