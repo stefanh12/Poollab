@@ -40,38 +40,14 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
 2. Click "Create Integration" and search for "Poollab"
 3. **Get your personal API token:**
    - Visit: https://labcom.cloud
-   - Your token is in the URL: `?token=YOUR_PERSONAL_TOKEN`
-   - Copy the entire token string
+   - Your token is generated in https://labcom.cloud/pages/user-setting GraphiQL.
+   - Generate a token and copy the token string
 4. Paste your **personal token** into the Home Assistant config
 5. The integration will automatically discover **all your devices/pools**
 6. Configuration complete!
 
 ⚠️ **Important**: Each account has a **unique personal token**. Never share it!
 
-### Getting Your Personal API Token
-
-Each LabCom account has a **unique personal token** that grants access to your specific device(s).
-
-1. **Visit the token interface:**
-   - Go to: https://backend.labcom.cloud/graphiql
-   - You'll be automatically redirected with your personal token in the URL
-
-2. **Find your token in the URL:**
-   - Look at your browser's address bar
-   - Your token is the long string after `?token=`
-   - Example: `https://backend.labcom.cloud/graphiql?token=TOKEN...`
-
-3. **Copy your personal token:**
-   - Highlight the entire token string (the long alphanumeric sequence)
-   - Copy it to clipboard
-   - Don't include the `?token=` part, just the token itself
-
-4. **Use in Home Assistant:**
-   - When adding the Poollab integration, paste your personal token
-   - Home Assistant will store it securely
-   - **Never share your personal token** - it's like a password for your account
-
-⚠️ **Security**: Your token is unique and personal to your account. Treat it like a password and never share it publicly.
 
 ### Multiple Pools/Devices
 
@@ -148,7 +124,7 @@ This integration requires:
 - Check network connectivity
 - Verify API token is still valid
 - Check Home Assistant logs for error messages
-- If a specific sensor is unavailable, verify the measurement type is supported by your Poollab device model
+- If a specific sensor is unavailable, verify the measurement is synced to the Poollab backend
 - A value that is out of the valid range listed above will also cause the sensor to report unavailable (a warning will appear in the logs)
 
 ## Support
