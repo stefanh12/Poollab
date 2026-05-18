@@ -68,7 +68,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=data_schema,
             errors=errors,
             description_placeholders={
-                "token_url": "https://backend.labcom.cloud/graphiql"
+                "token_url": "https://labcom.cloud/pages/user-setting"
             },
         )
 
@@ -119,7 +119,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=data_schema,
             errors=errors,
             description_placeholders={
-                "token_url": "https://backend.labcom.cloud/graphiql"
+                "token_url": "https://labcom.cloud/pages/user-setting"
             },
         )
 
