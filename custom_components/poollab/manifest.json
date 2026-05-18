@@ -1,13 +1,12 @@
 {
   "domain": "poollab",
   "name": "Poollab",
-  "codeowners": ["@yourusername"],
+  "integration_type": "service",
+  "codeowners": ["@stefanh12"],
   "config_flow": true,
   "documentation": "https://github.com/stefanh12/poollab",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/stefanh12/poollab/issues",
-  "requirements": [
-    "aiohttp>=3.8.0"
-  ],
+  "requirements": [],
   "version": "1.0.1"
 }
