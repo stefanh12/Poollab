@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Poollab Konto",
+        "description": "Geben Sie Ihren persönlichen LabCom API-Token ein.\n\nJedes Konto besitzt einen eindeutigen Token. Sie erhalten Ihren Token unter: {token_url}\n\n1. Öffnen Sie den obigen Link\n2. Navigieren Sie zu 'GraphiQL API'\n3. Generieren Sie einen neuen Token\n4. Kopieren Sie den vollständigen Token und fügen Sie ihn ein\n\n⚠️ Geben Sie Ihren persönlichen Token niemals weiter!",
+        "data": {
+          "token": "Persönlicher API-Token"
+        }
+      },
+      "reconfigure": {
+        "title": "Poollab neu konfigurieren",
+        "description": "Aktualisieren Sie Ihren persönlichen LabCom API-Token.\n\nVerfügbar unter: {token_url}",
+        "data": {
+          "token": "Persönlicher API-Token"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ungültiger API-Token",
+      "cannot_connect": "Verbindung zur Poollab API fehlgeschlagen",
+      "no_devices": "Keine Geräte gefunden",
+      "unknown": "Ein unbekannter Fehler ist aufgetreten"
+    },
+    "abort": {
+      "already_configured": "Integration ist bereits konfiguriert",
+      "reconfigure_successful": "Neukonfiguration erfolgreich"
+    }
+  }
+}
