@@ -35,15 +35,16 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
 
 ### Setup Steps
 
-1. Go to Settings → Devices & Services → Integrations
-2. Click "Create Integration" and search for "Poollab"
-3. **Get your personal API token:**
+1. **Ensure that you have synced at least one measurement from your device to Labcom cloud**
+2. Go to Settings → Devices & Services → Integrations
+3. Click "Create Integration" and search for "Poollab"
+4. **Get your personal API token:**
    - Visit: https://labcom.cloud
    - Your token is generated in https://labcom.cloud/pages/user-setting GraphiQL.
    - Generate a token and copy the token string
-4. Paste your **personal token** into the Home Assistant config
-5. The integration will automatically discover **all your devices/pools**
-6. Configuration complete!
+5. Paste your **personal token** into the Home Assistant config
+6. The integration will automatically discover **all your devices/pools**
+7. Configuration complete!
 
 ⚠️ **Important**: Each account has a **unique personal token**. Never share it!
 
