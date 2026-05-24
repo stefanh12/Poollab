@@ -1,7 +1,6 @@
 """Sensor platform for Poollab integration."""
 
 import logging
-from datetime import datetime, timezone
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import EntityCategory, UnitOfTemperature
@@ -28,6 +27,7 @@ from .const import (
     SENSOR_TYPE_LAST_MEASUREMENT,
     is_measurement_value_in_range,
 )
+from .time_utils import parse_measurement_timestamp
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -228,36 +228,19 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
         return None
 
     @staticmethod
-    def _parse_timestamp(raw_ts) -> "datetime | None":
-        """Parse a raw timestamp (unix int/float or ISO string) to a timezone-aware datetime."""
-        if raw_ts is None:
-            return None
-        try:
-            if isinstance(raw_ts, (int, float)):
-                ts = float(raw_ts)
-                ts = ts / 1000.0 if ts > 1e12 else ts
-                return datetime.fromtimestamp(ts, tz=timezone.utc)
-            ts_str = str(raw_ts).strip()
-            if ts_str.isdigit():
-                ts = float(ts_str)
-                ts = ts / 1000.0 if ts > 1e12 else ts
-                return datetime.fromtimestamp(ts, tz=timezone.utc)
-            dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt
-        except (ValueError, TypeError, OSError):
-            return None
+    def _parse_timestamp(raw_ts, assume_timezone=None):
+        """Parse a raw timestamp into a timezone-aware datetime."""
+        return parse_measurement_timestamp(raw_ts, assume_timezone)
 
     def _calculate_combined_chlorine(self, latest_values: dict) -> float:
         """Calculate combined chlorine from total and free chlorine, or from active chlorine data.
-        
+
         Combined Chlorine = Total Chlorine - Free Chlorine
-        
+
         If Total Chlorine is not directly available, try to use bound_to_cya from ActiveChlorine data.
         """
         free_cl_data = latest_values.get("PL Chlorine Free")
-        
+
         # Try primary and alternate names for total chlorine
         total_cl_data = latest_values.get("PL Total Chlorine") or latest_values.get("PL Chlorine Total")
 
@@ -286,13 +269,13 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             total_cl_data = latest_values.get("PL Total Chlorine") or latest_values.get("PL Chlorine Total")
             # Only available if we have both free and total chlorine data
             return bool(free_cl_data and total_cl_data and self.native_value is not None)
-        
+
         if self.sensor_type == SENSOR_TYPE_TOTAL_CL:
             latest_values = self.coordinator.data.get("latest_values", {})
             total_cl_data = latest_values.get("PL Total Chlorine") or latest_values.get("PL Chlorine Total")
             # Only available if we have total chlorine data from the API
             return bool(total_cl_data)
-        
+
         # For other sensors, use the standard coordinator availability
         return self.coordinator.last_update_success and self.native_value is not None
 
