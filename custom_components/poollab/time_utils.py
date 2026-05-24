@@ -3,22 +3,17 @@
 from datetime import datetime, timezone
 
 
-def _local_timezone():
-    """Return the system local timezone, falling back to UTC if unavailable."""
-    return datetime.now().astimezone().tzinfo or timezone.utc
-
-
 def parse_measurement_timestamp(raw_ts, assume_timezone=None):
     """Parse a measurement timestamp into a timezone-aware datetime.
 
     Numeric timestamps are treated as unix epoch seconds or milliseconds.
-    Naive ISO strings are assumed to be in the provided timezone, or the
-    system local timezone when none is supplied.
+    Naive ISO strings are assumed to be UTC unless a different timezone is
+    explicitly provided.
     """
     if raw_ts is None:
         return None
 
-    timezone_to_use = assume_timezone or _local_timezone()
+    timezone_to_use = assume_timezone or timezone.utc
 
     try:
         if isinstance(raw_ts, (int, float)):
