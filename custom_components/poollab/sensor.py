@@ -143,7 +143,7 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             SENSOR_TYPE_FREE_CL: ("PL Chlorine Free",),
             SENSOR_TYPE_TOTAL_CL: ("PL Total Chlorine", "PL Chlorine Total"),
             SENSOR_TYPE_TEMP: ("PL Temperature",),
-            SENSOR_TYPE_ALK: ("PL T-Alka",),
+            SENSOR_TYPE_ALK: ("PL T-Alka", "PL Alkalinity"),
             SENSOR_TYPE_CYA: ("PL Cyanuric Acid",),
             SENSOR_TYPE_SALT: ("PL Salt",),
         }
