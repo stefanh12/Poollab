@@ -215,30 +215,62 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             for param_name in param_names:
                 if param_name in latest_values:
                     measurement = latest_values[param_name]
-                    value = measurement.get("value")
-                    if value is not None:
-                        try:
-                            float_value = float(value)
-                            if not is_measurement_value_in_range(self.sensor_type, float_value):
-                                config = SENSOR_CONFIGS.get(self.sensor_type, {})
-                                _LOGGER.warning(
-                                    "Value %s for parameter %s (%s) is outside valid range [%s, %s], ignoring",
-                                    float_value,
-                                    param_name,
-                                    self.sensor_type,
-                                    config.get("min"),
-                                    config.get("max"),
-                                )
-                                return None
-                            config = SENSOR_CONFIGS.get(self.sensor_type, {})
-                            precision = config.get("precision", 2)
-                            if isinstance(precision, int) and precision >= 0:
-                                return round(float_value, precision)
-                            return float_value
-                        except (ValueError, TypeError):
-                            return None
+                    return self._measurement_native_value(measurement, param_name)
 
         return None
+
+    @staticmethod
+    def _is_numeric_text(value: str) -> bool:
+        """Return True if a formatted value can be represented as a number."""
+        try:
+            float(value)
+        except (ValueError, TypeError):
+            return False
+        return True
+
+    def _measurement_native_value(self, measurement: dict, param_name: str):
+        """Return a Home Assistant state value for a LabCom measurement."""
+        value = measurement.get("value")
+        if value is None:
+            return None
+
+        try:
+            float_value = float(value)
+        except (ValueError, TypeError):
+            return None
+
+        if not is_measurement_value_in_range(self.sensor_type, float_value):
+            config = SENSOR_CONFIGS.get(self.sensor_type, {})
+            formatted_value = measurement.get("formatted_value")
+            if formatted_value is not None:
+                formatted_text = str(formatted_value).strip()
+                if formatted_text and not self._is_numeric_text(formatted_text):
+                    _LOGGER.warning(
+                        "Value %s for parameter %s (%s) is outside valid range [%s, %s], using formatted status %s",
+                        float_value,
+                        param_name,
+                        self.sensor_type,
+                        config.get("min"),
+                        config.get("max"),
+                        formatted_text,
+                    )
+                    return formatted_text
+
+            _LOGGER.warning(
+                "Value %s for parameter %s (%s) is outside valid range [%s, %s], ignoring",
+                float_value,
+                param_name,
+                self.sensor_type,
+                config.get("min"),
+                config.get("max"),
+            )
+            return None
+
+        config = SENSOR_CONFIGS.get(self.sensor_type, {})
+        precision = config.get("precision", 2)
+        if isinstance(precision, int) and precision >= 0:
+            return round(float_value, precision)
+        return float_value
 
     @staticmethod
     def _parse_timestamp(raw_ts, assume_timezone=None):
@@ -414,6 +446,18 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             for param_name in param_names:
                 if param_name in latest_values:
                     measurement = latest_values[param_name]
+                    if measurement.get("value") is not None:
+                        attributes["raw_value"] = measurement.get("value")
+                    if measurement.get("unit"):
+                        attributes["api_unit"] = measurement.get("unit")
+                    if measurement.get("formatted_value") is not None:
+                        attributes["formatted_value"] = measurement.get("formatted_value")
+                    if measurement.get("ideal_low") is not None:
+                        attributes["ideal_low"] = measurement.get("ideal_low")
+                    if measurement.get("ideal_high") is not None:
+                        attributes["ideal_high"] = measurement.get("ideal_high")
+                    if measurement.get("ideal_status"):
+                        attributes["ideal_status"] = measurement.get("ideal_status")
                     # Add timestamp if not already present
                     if "timestamp" not in attributes and measurement.get("timestamp"):
                         attributes["timestamp"] = measurement.get("timestamp")

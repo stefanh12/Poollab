@@ -193,9 +193,14 @@ class PoollabApiClient:
             id
             unit
             parameter
+            parameter_id
             timestamp
             comment
             value
+            formatted_value
+            ideal_low
+            ideal_high
+            ideal_status
             device_serial
             operator_name
           }
