@@ -54,20 +54,28 @@ class TestIsValueInRange:
         assert is_measurement_value_in_range(SENSOR_TYPE_FREE_CL, -0.5) is False
 
     def test_bromine_valid(self):
-        """Bromine of 4 ppm is within 0-13."""
+        """Bromine of 4 ppm is within 0-13.5."""
         assert is_measurement_value_in_range(SENSOR_TYPE_BROMINE, 4.0) is True
+
+    def test_bromine_boundary_max(self):
+        """Bromine of 13.5 ppm is at the PoolLab range maximum."""
+        assert is_measurement_value_in_range(SENSOR_TYPE_BROMINE, 13.5) is True
 
     def test_bromine_above_maximum(self):
         """Bromine above the PoolLab range is invalid."""
         assert is_measurement_value_in_range(SENSOR_TYPE_BROMINE, 14.0) is False
 
     def test_active_oxygen_valid(self):
-        """Active oxygen of 8 ppm is within 0-20."""
+        """Active oxygen of 8 ppm is within 0-30."""
         assert is_measurement_value_in_range(SENSOR_TYPE_ACTIVE_OXYGEN, 8.0) is True
+
+    def test_active_oxygen_boundary_max(self):
+        """Active oxygen of 30 ppm is at the PoolLab range maximum."""
+        assert is_measurement_value_in_range(SENSOR_TYPE_ACTIVE_OXYGEN, 30.0) is True
 
     def test_active_oxygen_above_maximum(self):
         """Active oxygen above the PoolLab range is invalid."""
-        assert is_measurement_value_in_range(SENSOR_TYPE_ACTIVE_OXYGEN, 21.0) is False
+        assert is_measurement_value_in_range(SENSOR_TYPE_ACTIVE_OXYGEN, 31.0) is False
 
     def test_temperature_valid(self):
         """Temperature of 26°C is within 0-50."""

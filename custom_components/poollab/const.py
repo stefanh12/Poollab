@@ -94,7 +94,7 @@ SENSOR_CONFIGS = {
         "icon": "mdi:water-check",
         "precision": 2,
         "min": 0,
-        "max": 13,
+        "max": 13.5,
         "description": "Bromine residual for sanitization",
     },
     SENSOR_TYPE_ACTIVE_OXYGEN: {
@@ -103,7 +103,7 @@ SENSOR_CONFIGS = {
         "icon": "mdi:molecule",
         "precision": 2,
         "min": 0,
-        "max": 20,
+        "max": 30,
         "description": "Active oxygen residual",
     },
     SENSOR_TYPE_TEMP: {
