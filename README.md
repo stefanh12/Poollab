@@ -78,6 +78,10 @@ The integration creates the following sensors for each pool/device:
 | **Alkalinity** | Total alkalinity | ppm | 0 – 300 |
 | **Stabilizer (CYA)** | Cyanuric acid level | ppm | 0 – 200 |
 | **Salt Level** | Salt concentration | ppm | 0 – 3600 |
+| **Bromine** | Bromine concentration | mg/l Br₂ | 0 – 9 |
+| **Active Oxygen** | Active Oxygen concentration | mg/l O₂ | 0 – 20 |
+
+
 
 ### Diagnostic Sensors
 
