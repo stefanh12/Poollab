@@ -17,6 +17,8 @@ from .const import (
     SENSOR_TYPE_FREE_CL,
     SENSOR_TYPE_TOTAL_CL,
     SENSOR_TYPE_COMBINED_CL,
+    SENSOR_TYPE_BROMINE,
+    SENSOR_TYPE_ACTIVE_OXYGEN,
     SENSOR_TYPE_TEMP,
     SENSOR_TYPE_ALK,
     SENSOR_TYPE_CYA,
@@ -54,6 +56,8 @@ async def async_setup_entry(
             SENSOR_TYPE_FREE_CL,
             SENSOR_TYPE_TOTAL_CL,
             SENSOR_TYPE_COMBINED_CL,
+            SENSOR_TYPE_BROMINE,
+            SENSOR_TYPE_ACTIVE_OXYGEN,
             SENSOR_TYPE_TEMP,
             SENSOR_TYPE_ALK,
             SENSOR_TYPE_CYA,
@@ -142,6 +146,8 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             SENSOR_TYPE_CL: ("PL Chlorine Free",),
             SENSOR_TYPE_FREE_CL: ("PL Chlorine Free",),
             SENSOR_TYPE_TOTAL_CL: ("PL Total Chlorine", "PL Chlorine Total"),
+            SENSOR_TYPE_BROMINE: ("PL Bromine",),
+            SENSOR_TYPE_ACTIVE_OXYGEN: ("PL Active Oxygen",),
             SENSOR_TYPE_TEMP: ("PL Temperature",),
             SENSOR_TYPE_ALK: ("PL T-Alka", "PL Alkalinity"),
             SENSOR_TYPE_CYA: ("PL Cyanuric Acid",),
@@ -367,14 +373,24 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
                 else:
                     attributes["note"] = "Combined chlorine cannot be calculated without total chlorine measurement. Please add total chlorine via manual input or testing."
 
+        if self.sensor_type == SENSOR_TYPE_BROMINE:
+            attributes["description"] = "Bromine residual for sanitization"
+            attributes["ideal_range"] = "3-5 ppm for spas; follow product guidance"
+
+        if self.sensor_type == SENSOR_TYPE_ACTIVE_OXYGEN:
+            attributes["description"] = "Active oxygen residual"
+            attributes["also_known_as"] = "MPS"
+
         # Add timestamp for any sensor
         sensor_mapping = {
             SENSOR_TYPE_PH: ("PL pH",),
             SENSOR_TYPE_CL: ("PL Chlorine Free",),
             SENSOR_TYPE_FREE_CL: ("PL Chlorine Free",),
             SENSOR_TYPE_TOTAL_CL: ("PL Total Chlorine", "PL Chlorine Total"),
+            SENSOR_TYPE_BROMINE: ("PL Bromine",),
+            SENSOR_TYPE_ACTIVE_OXYGEN: ("PL Active Oxygen",),
             SENSOR_TYPE_TEMP: ("PL Temperature",),
-            SENSOR_TYPE_ALK: ("PL T-Alka",),
+            SENSOR_TYPE_ALK: ("PL T-Alka", "PL Alkalinity"),
             SENSOR_TYPE_CYA: ("PL Cyanuric Acid",),
             SENSOR_TYPE_SALT: ("PL Salt",),
         }

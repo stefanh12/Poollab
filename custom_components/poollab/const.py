@@ -27,6 +27,8 @@ SENSOR_TYPE_CL = "chlorine"  # General chlorine (backward compatibility)
 SENSOR_TYPE_FREE_CL = "free_chlorine"  # Free/Active chlorine
 SENSOR_TYPE_TOTAL_CL = "total_chlorine"  # Total chlorine
 SENSOR_TYPE_COMBINED_CL = "combined_chlorine"  # Combined chlorine (calculated)
+SENSOR_TYPE_BROMINE = "bromine"
+SENSOR_TYPE_ACTIVE_OXYGEN = "active_oxygen"
 SENSOR_TYPE_TEMP = "temperature"
 SENSOR_TYPE_ALK = "alkalinity"
 SENSOR_TYPE_CYA = "cya"
@@ -85,6 +87,24 @@ SENSOR_CONFIGS = {
         "max": 5,
         "description": "Chlorine bound to contaminants (chloramines)",
         "calculated": True,
+    },
+    SENSOR_TYPE_BROMINE: {
+        "name": "Bromine",
+        "unit": "ppm",
+        "icon": "mdi:water-check",
+        "precision": 2,
+        "min": 0,
+        "max": 13,
+        "description": "Bromine residual for sanitization",
+    },
+    SENSOR_TYPE_ACTIVE_OXYGEN: {
+        "name": "Active Oxygen",
+        "unit": "ppm",
+        "icon": "mdi:molecule",
+        "precision": 2,
+        "min": 0,
+        "max": 20,
+        "description": "Active oxygen residual",
     },
     SENSOR_TYPE_TEMP: {
         "name": "Temperature",
