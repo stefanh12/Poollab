@@ -17,6 +17,8 @@ from .const import (
     SENSOR_TYPE_FREE_CL,
     SENSOR_TYPE_TOTAL_CL,
     SENSOR_TYPE_COMBINED_CL,
+    SENSOR_TYPE_BROMINE,
+    SENSOR_TYPE_ACTIVE_OXYGEN,
     SENSOR_TYPE_TEMP,
     SENSOR_TYPE_ALK,
     SENSOR_TYPE_CYA,
@@ -54,6 +56,8 @@ async def async_setup_entry(
             SENSOR_TYPE_FREE_CL,
             SENSOR_TYPE_TOTAL_CL,
             SENSOR_TYPE_COMBINED_CL,
+            SENSOR_TYPE_BROMINE,
+            SENSOR_TYPE_ACTIVE_OXYGEN,
             SENSOR_TYPE_TEMP,
             SENSOR_TYPE_ALK,
             SENSOR_TYPE_CYA,
@@ -142,6 +146,15 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             SENSOR_TYPE_CL: ("PL Chlorine Free",),
             SENSOR_TYPE_FREE_CL: ("PL Chlorine Free",),
             SENSOR_TYPE_TOTAL_CL: ("PL Total Chlorine", "PL Chlorine Total"),
+            SENSOR_TYPE_BROMINE: ("PL Bromine",),
+            SENSOR_TYPE_ACTIVE_OXYGEN: (
+                "PL Active Oxygen",
+                "PL Active Oxygen (MPS)",
+                "PL Active Oxygen MPS",
+                "PL MPS",
+                "PL Aktivsauerstoff",
+                "PL Aktivsauerstoff (MPS)",
+            ),
             SENSOR_TYPE_TEMP: ("PL Temperature",),
             SENSOR_TYPE_ALK: ("PL T-Alka", "PL Alkalinity"),
             SENSOR_TYPE_CYA: ("PL Cyanuric Acid",),
@@ -202,30 +215,62 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             for param_name in param_names:
                 if param_name in latest_values:
                     measurement = latest_values[param_name]
-                    value = measurement.get("value")
-                    if value is not None:
-                        try:
-                            float_value = float(value)
-                            if not is_measurement_value_in_range(self.sensor_type, float_value):
-                                config = SENSOR_CONFIGS.get(self.sensor_type, {})
-                                _LOGGER.warning(
-                                    "Value %s for parameter %s (%s) is outside valid range [%s, %s], ignoring",
-                                    float_value,
-                                    param_name,
-                                    self.sensor_type,
-                                    config.get("min"),
-                                    config.get("max"),
-                                )
-                                return None
-                            config = SENSOR_CONFIGS.get(self.sensor_type, {})
-                            precision = config.get("precision", 2)
-                            if isinstance(precision, int) and precision >= 0:
-                                return round(float_value, precision)
-                            return float_value
-                        except (ValueError, TypeError):
-                            return None
+                    return self._measurement_native_value(measurement, param_name)
 
         return None
+
+    @staticmethod
+    def _is_numeric_text(value: str) -> bool:
+        """Return True if a formatted value can be represented as a number."""
+        try:
+            float(value)
+        except (ValueError, TypeError):
+            return False
+        return True
+
+    def _measurement_native_value(self, measurement: dict, param_name: str):
+        """Return a Home Assistant state value for a LabCom measurement."""
+        value = measurement.get("value")
+        if value is None:
+            return None
+
+        try:
+            float_value = float(value)
+        except (ValueError, TypeError):
+            return None
+
+        if not is_measurement_value_in_range(self.sensor_type, float_value):
+            config = SENSOR_CONFIGS.get(self.sensor_type, {})
+            formatted_value = measurement.get("formatted_value")
+            if formatted_value is not None:
+                formatted_text = str(formatted_value).strip()
+                if formatted_text and not self._is_numeric_text(formatted_text):
+                    _LOGGER.warning(
+                        "Value %s for parameter %s (%s) is outside valid range [%s, %s], using formatted status %s",
+                        float_value,
+                        param_name,
+                        self.sensor_type,
+                        config.get("min"),
+                        config.get("max"),
+                        formatted_text,
+                    )
+                    return formatted_text
+
+            _LOGGER.warning(
+                "Value %s for parameter %s (%s) is outside valid range [%s, %s], ignoring",
+                float_value,
+                param_name,
+                self.sensor_type,
+                config.get("min"),
+                config.get("max"),
+            )
+            return None
+
+        config = SENSOR_CONFIGS.get(self.sensor_type, {})
+        precision = config.get("precision", 2)
+        if isinstance(precision, int) and precision >= 0:
+            return round(float_value, precision)
+        return float_value
 
     @staticmethod
     def _parse_timestamp(raw_ts, assume_timezone=None):
@@ -367,14 +412,31 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
                 else:
                     attributes["note"] = "Combined chlorine cannot be calculated without total chlorine measurement. Please add total chlorine via manual input or testing."
 
+        if self.sensor_type == SENSOR_TYPE_BROMINE:
+            attributes["description"] = "Bromine residual for sanitization"
+            attributes["ideal_range"] = "3-5 ppm for spas; follow product guidance"
+
+        if self.sensor_type == SENSOR_TYPE_ACTIVE_OXYGEN:
+            attributes["description"] = "Active oxygen residual"
+            attributes["also_known_as"] = "MPS"
+
         # Add timestamp for any sensor
         sensor_mapping = {
             SENSOR_TYPE_PH: ("PL pH",),
             SENSOR_TYPE_CL: ("PL Chlorine Free",),
             SENSOR_TYPE_FREE_CL: ("PL Chlorine Free",),
             SENSOR_TYPE_TOTAL_CL: ("PL Total Chlorine", "PL Chlorine Total"),
+            SENSOR_TYPE_BROMINE: ("PL Bromine",),
+            SENSOR_TYPE_ACTIVE_OXYGEN: (
+                "PL Active Oxygen",
+                "PL Active Oxygen (MPS)",
+                "PL Active Oxygen MPS",
+                "PL MPS",
+                "PL Aktivsauerstoff",
+                "PL Aktivsauerstoff (MPS)",
+            ),
             SENSOR_TYPE_TEMP: ("PL Temperature",),
-            SENSOR_TYPE_ALK: ("PL T-Alka",),
+            SENSOR_TYPE_ALK: ("PL T-Alka", "PL Alkalinity"),
             SENSOR_TYPE_CYA: ("PL Cyanuric Acid",),
             SENSOR_TYPE_SALT: ("PL Salt",),
         }
@@ -384,6 +446,18 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             for param_name in param_names:
                 if param_name in latest_values:
                     measurement = latest_values[param_name]
+                    if measurement.get("value") is not None:
+                        attributes["raw_value"] = measurement.get("value")
+                    if measurement.get("unit"):
+                        attributes["api_unit"] = measurement.get("unit")
+                    if measurement.get("formatted_value") is not None:
+                        attributes["formatted_value"] = measurement.get("formatted_value")
+                    if measurement.get("ideal_low") is not None:
+                        attributes["ideal_low"] = measurement.get("ideal_low")
+                    if measurement.get("ideal_high") is not None:
+                        attributes["ideal_high"] = measurement.get("ideal_high")
+                    if measurement.get("ideal_status"):
+                        attributes["ideal_status"] = measurement.get("ideal_status")
                     # Add timestamp if not already present
                     if "timestamp" not in attributes and measurement.get("timestamp"):
                         attributes["timestamp"] = measurement.get("timestamp")

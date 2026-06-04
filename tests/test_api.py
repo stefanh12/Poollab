@@ -424,6 +424,24 @@ async def test_get_measurements_with_all_parameter_types():
                     {
                         "account": "Hemma Pool",
                         "id": 3,
+                        "parameter": "PL Bromine",
+                        "value": 4.0,
+                        "unit": "ppm",
+                        "timestamp": "2026-02-16T12:00:00Z",
+                        "device_serial": "POOL001",
+                    },
+                    {
+                        "account": "Hemma Pool",
+                        "id": 4,
+                        "parameter": "PL Active Oxygen (MPS)",
+                        "value": 8.0,
+                        "unit": "ppm",
+                        "timestamp": "2026-02-16T12:00:00Z",
+                        "device_serial": "POOL001",
+                    },
+                    {
+                        "account": "Hemma Pool",
+                        "id": 5,
                         "parameter": "PL Temperature",
                         "value": 26.5,
                         "unit": "°C",
@@ -432,7 +450,7 @@ async def test_get_measurements_with_all_parameter_types():
                     },
                     {
                         "account": "Hemma Pool",
-                        "id": 4,
+                        "id": 6,
                         "parameter": "PL T-Alka",
                         "value": 80,
                         "unit": "ppm",
@@ -441,7 +459,7 @@ async def test_get_measurements_with_all_parameter_types():
                     },
                     {
                         "account": "Hemma Pool",
-                        "id": 5,
+                        "id": 7,
                         "parameter": "PL Cyanuric Acid",
                         "value": 45,
                         "unit": "ppm",
@@ -450,7 +468,7 @@ async def test_get_measurements_with_all_parameter_types():
                     },
                     {
                         "account": "Hemma Pool",
-                        "id": 6,
+                        "id": 8,
                         "parameter": "PL Salt",
                         "value": 1200,
                         "unit": "ppm",
@@ -467,12 +485,14 @@ async def test_get_measurements_with_all_parameter_types():
     client = PoollabApiClient("test_token", session)
     measurements = await client.get_measurements()
 
-    assert len(measurements) == 6
+    assert len(measurements) == 8
     
     # Verify all parameter types are present
     parameters = {m["parameter"] for m in measurements}
     assert "PL pH" in parameters
     assert "PL Chlorine Free" in parameters
+    assert "PL Bromine" in parameters
+    assert "PL Active Oxygen (MPS)" in parameters
     assert "PL Temperature" in parameters
     assert "PL T-Alka" in parameters
     assert "PL Cyanuric Acid" in parameters
