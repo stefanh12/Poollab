@@ -14,6 +14,13 @@
         "data": {
           "token": "Persönlicher API-Token"
         }
+      },
+      "sanitation": {
+        "title": "Desinfektionsmethode",
+        "description": "Wählen Sie die Desinfektionsmethode für {device_name}.\n\nDer Chlor-Modus zeigt Chlor-Sensoren und Stabilisator (CYA) an. Der Modus Brom + Aktivsauerstoff zeigt nur Brom- und Aktivsauerstoff-Sensoren an.\n\nGerät {current_index} von {total_devices}",
+        "data": {
+          "sanitation_mode": "Desinfektionsmethode"
+        }
       }
     },
     "error": {
@@ -24,7 +31,8 @@
     },
     "abort": {
       "already_configured": "Integration ist bereits konfiguriert",
-      "reconfigure_successful": "Neukonfiguration erfolgreich"
+      "reconfigure_successful": "Neukonfiguration erfolgreich",
+      "unknown": "Ein unbekannter Fehler ist aufgetreten"
     }
   }
 }

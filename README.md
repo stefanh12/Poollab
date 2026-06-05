@@ -11,7 +11,7 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
 - 🫧 Monitor active oxygen (MPS) residual
 - 🌡️ Monitor water temperature
 - ⚗️ Alkalinity tracking
-- 🛡️ Stabilizer (CYA) monitoring
+- 🛡️ Stabilizer (CYA) monitoring in chlorine mode
 - 🧂 Salt level monitoring
 - 🔄 Automatic updates every 5 minutes
 - ✅ Data validation — out-of-range values are discarded automatically
@@ -43,7 +43,7 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
 
 ### Setup Steps
 
-1. **Ensure that you have synced at least one measurement from your device to Labcom cloud** 
+1. **Ensure that you have synced at least one measurement from your device to Labcom cloud**
    If you do not have any readings the setup will **fail**
 2. Go to Settings → Devices & Services → Integrations
 3. Click "Create Integration" and search for "Poollab"
@@ -57,10 +57,10 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
 
 ⚠️ **Important**: Each account has a **unique personal token**. Never share it!
 
-
 ### Multiple Pools/Devices
 
 If your LabCom account has multiple pools or devices:
+
 - **Automatic Discovery**: The integration automatically discovers ALL your pools when you add it
 - **One Integration Entry**: You only need to enter your token once per account
 - **Separate Device Entries**: Each pool appears as a separate device in Home Assistant
@@ -71,32 +71,35 @@ If your LabCom account has multiple pools or devices:
 
 The integration creates the following sensors for each pool/device:
 
+During setup, each device is assigned a sanitation method:
+
+- **Chlorine**: exposes chlorine sensors, Stabilizer (CYA), and chlorine chemistry calculations
+- **Bromine + Active Oxygen**: exposes bromine and active oxygen sensors instead of chlorine-family sensors and CYA
+
 ### Water Quality Measurements
 
-| Sensor | Description | Unit | Valid Range |
-|--------|-------------|------|-------------|
-| **pH** | Current pool pH | pH | 0 – 14 |
-| **Chlorine** | General chlorine level (legacy) | ppm | 0 – 10 |
-| **Free Chlorine** | Active chlorine available for sanitization | ppm | 0 – 10 |
-| **Total Chlorine** | Free + combined chlorine | ppm | 0 – 10 |
-| **Combined Chlorine** | Chloramines — *calculated* (Total − Free) | ppm | 0 – 5 |
-| **Unbound Chlorine** | Free chlorine from ActiveChlorine model — *calculated* | ppm | 0 – 5 |
-| **Chlorine Bound to CYA** | Chlorine sequestered by stabilizer — *calculated* | ppm | 0 – 5 |
-| **Temperature** | Pool water temperature | °C | 0 – 50 |
-| **Alkalinity** | Total alkalinity | ppm | 0 – 300 |
-| **Stabilizer (CYA)** | Cyanuric acid level | ppm | 0 – 200 |
-| **Salt Level** | Salt concentration | ppm | 0 – 3600 |
-| **Bromine** | Bromine residual for sanitization | ppm | 0 – 13.5 |
-| **Active Oxygen** | Active oxygen residual | ppm | 0 – 30 |
-
-
+| Sensor                    | Description                                                       | Unit     | Valid Range |
+| ------------------------- | ----------------------------------------------------------------- | -------- | ----------- |
+| **pH**                    | Current pool pH                                                   | pH       | 0 – 14      |
+| **Chlorine**              | General chlorine level (legacy)                                   | ppm      | 0 – 10      |
+| **Free Chlorine**         | Active chlorine available for sanitization                        | ppm      | 0 – 10      |
+| **Total Chlorine**        | Free + combined chlorine                                          | ppm      | 0 – 10      |
+| **Combined Chlorine**     | Chloramines — _calculated_ (Total − Free)                         | ppm      | 0 – 5       |
+| **Unbound Chlorine**      | Free chlorine from ActiveChlorine model — _calculated_            | ppm      | 0 – 5       |
+| **Chlorine Bound to CYA** | Chlorine sequestered by stabilizer — _calculated_                 | ppm      | 0 – 5       |
+| **Temperature**           | Pool water temperature                                            | °C       | 0 – 50      |
+| **Alkalinity**            | Total alkalinity                                                  | ppm      | 0 – 300     |
+| **Stabilizer (CYA)**      | Cyanuric acid level _(chlorine mode only)_                        | ppm      | 0 – 200     |
+| **Salt Level**            | Salt concentration                                                | ppm      | 0 – 3600    |
+| **Bromine**               | Bromine concentration _(bromine + active oxygen mode only)_       | mg/l Br₂ | 0 – 9       |
+| **Active Oxygen**         | Active Oxygen concentration _(bromine + active oxygen mode only)_ | mg/l O₂  | 0 – 20      |
 
 ### Diagnostic Sensors
 
-| Sensor | Description |
-|--------|-------------|
+| Sensor                | Description                                        |
+| --------------------- | -------------------------------------------------- |
 | **Measurement Count** | Total number of measurements stored for the device |
-| **Last Measurement** | Timestamp of the most recent measurement |
+| **Last Measurement**  | Timestamp of the most recent measurement           |
 
 ### Sanitizer Comparison (Quick Reference)
 
@@ -110,7 +113,7 @@ The integration creates the following sensors for each pool/device:
 
 ### Chlorine Chemistry
 
-The integration provides detailed chlorine measurements:
+The integration provides detailed chlorine measurements in **chlorine mode**:
 
 - **Free Chlorine (Active Chlorine)**: The chlorine available for sanitization. Ideal range: 1–3 ppm.
 - **Total Chlorine**: All chlorine in the pool (free + combined).
@@ -140,6 +143,7 @@ The integration validates all measurement values from the API against the physic
 ## API Requirements
 
 This integration requires:
+
 - Valid Labcom API token
 - At least one Poollab device registered in your account
 - Internet connectivity for API communication
@@ -147,17 +151,20 @@ This integration requires:
 ## Troubleshooting
 
 ### Integration won't authenticate
+
 - Verify your API token is correct
 - Check the token at https://backend.labcom.cloud/graphiql
 - Ensure your Labcom account is active
 - Check your internet connection
 
 ### No devices found
+
 - Log in to your Labcom account
 - Verify you have a Poollab device registered
 - Ensure the device is associated with your account
 
 ### Sensors showing "unavailable"
+
 - Check network connectivity
 - Verify API token is still valid
 - Check Home Assistant logs for error messages

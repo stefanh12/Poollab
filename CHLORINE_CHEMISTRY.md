@@ -6,6 +6,8 @@ This guide is chlorine-specific. If you use alternative sanitizers, see [BROMINE
 
 The Poollab integration provides detailed chlorine measurements to help you maintain optimal pool water quality. Understanding the different types of chlorine is essential for proper pool chemistry management.
 
+These sensors are only exposed for devices configured with the **Chlorine** sanitation method. Devices configured for **Bromine + Active Oxygen** do not expose chlorine-family sensors or Stabilizer (CYA).
+
 ## Chlorine Sensor Types
 
 ### 1. Free Chlorine (Active Chlorine) 🟢
@@ -17,6 +19,7 @@ The Poollab integration provides detailed chlorine measurements to help you main
 **Ideal Range**: 1-3 ppm (parts per million)
 
 **Attributes**:
+
 - `also_known_as`: "Active Chlorine"
 - `description`: "Active chlorine available for sanitization"
 - `ideal_range`: "1-3 ppm"
@@ -32,6 +35,7 @@ The Poollab integration provides detailed chlorine measurements to help you main
 **Formula**: Total Chlorine = Free Chlorine + Combined Chlorine
 
 **Attributes**:
+
 - `description`: "Total chlorine (free + combined)"
 - `calculation`: "Total = Free + Combined"
 
@@ -50,6 +54,7 @@ The Poollab integration provides detailed chlorine measurements to help you main
 **Ideal Range**: < 0.5 ppm (should be as low as possible)
 
 **Attributes**:
+
 - `description`: "Chlorine bound to contaminants (chloramines)"
 - `calculation`: "Combined = Total - Free"
 - `ideal_range`: "< 0.5 ppm"
@@ -58,6 +63,7 @@ The Poollab integration provides detailed chlorine measurements to help you main
 - `total_chlorine`: The total chlorine value used in calculation
 
 **Why it matters**: High combined chlorine means:
+
 - Poor water quality
 - Pool needs shocking
 - Irritation risk for swimmers
@@ -73,15 +79,16 @@ This sensor is maintained for backward compatibility and may represent either fr
 
 ### Ideal Chlorine Levels
 
-| Measurement | Target Range | Action Needed If Outside Range |
-|-------------|--------------|-------------------------------|
-| Free Chlorine | 1-3 ppm | Below: Add chlorine<br>Above: Dilute or wait |
-| Combined Chlorine | < 0.5 ppm | Above: Shock pool to break chloramines |
-| Total Chlorine | 1-3.5 ppm | Should be close to free chlorine |
+| Measurement       | Target Range | Action Needed If Outside Range               |
+| ----------------- | ------------ | -------------------------------------------- |
+| Free Chlorine     | 1-3 ppm      | Below: Add chlorine<br>Above: Dilute or wait |
+| Combined Chlorine | < 0.5 ppm    | Above: Shock pool to break chloramines       |
+| Total Chlorine    | 1-3.5 ppm    | Should be close to free chlorine             |
 
 ### What the Numbers Tell You
 
 **Scenario 1: Healthy Pool** ✅
+
 - Free Chlorine: 2.5 ppm
 - Total Chlorine: 2.6 ppm
 - Combined Chlorine: 0.1 ppm (calculated)
@@ -89,6 +96,7 @@ This sensor is maintained for backward compatibility and may represent either fr
 **Analysis**: Excellent! Very little combined chlorine, most is free and active.
 
 **Scenario 2: Needs Shocking** ⚠️
+
 - Free Chlorine: 1.5 ppm
 - Total Chlorine: 3.0 ppm
 - Combined Chlorine: 1.5 ppm (calculated)
@@ -96,6 +104,7 @@ This sensor is maintained for backward compatibility and may represent either fr
 **Analysis**: High combined chlorine! Pool needs shocking to break down chloramines.
 
 **Scenario 3: Low Chlorine** 🔴
+
 - Free Chlorine: 0.5 ppm
 - Total Chlorine: 1.2 ppm
 - Combined Chlorine: 0.7 ppm (calculated)
@@ -177,7 +186,7 @@ template:
         state: >
           {% set free = states('sensor.backyard_pool_free_chlorine') | float(0) %}
           {% set combined = states('sensor.backyard_pool_combined_chlorine') | float(0) %}
-          
+
           {% if free < 1.0 %}
             Critically Low
           {% elif free < 2.0 and combined > 0.5 %}
@@ -194,7 +203,7 @@ template:
         icon: >
           {% set free = states('sensor.backyard_pool_free_chlorine') | float(0) %}
           {% set combined = states('sensor.backyard_pool_combined_chlorine') | float(0) %}
-          
+
           {% if free < 1.0 or combined > 0.5 %}
             mdi:water-alert
           {% else %}
@@ -217,6 +226,7 @@ def calculate_combined_chlorine(total_chlorine, free_chlorine):
 ```
 
 **Requirements**:
+
 - Your Poollab device must provide both `freeChlorine` and `totalChlorine` values
 - If either value is missing, combined chlorine sensor will show "unavailable"
 - The calculation is performed locally, no API call needed
@@ -227,7 +237,8 @@ def calculate_combined_chlorine(total_chlorine, free_chlorine):
 
 **Cause**: Your device doesn't provide both free and total chlorine measurements
 
-**Solution**: 
+**Solution**:
+
 1. Check if your Poollab device model supports these measurements
 2. Verify the device has recent readings
 3. Some devices only provide a single "chlorine" measurement
@@ -252,9 +263,9 @@ The integration queries these chlorine fields from the LabCom API:
 query GetDeviceReadings($deviceId: ID!) {
   device(id: $deviceId) {
     lastReading {
-      chlorine          # Legacy/general chlorine
-      freeChlorine      # Active chlorine
-      totalChlorine     # Total chlorine
+      chlorine # Legacy/general chlorine
+      freeChlorine # Active chlorine
+      totalChlorine # Total chlorine
     }
   }
 }
@@ -263,8 +274,9 @@ query GetDeviceReadings($deviceId: ID!) {
 ### Sensor Entity IDs
 
 For a pool named "Backyard Pool":
+
 - `sensor.backyard_pool_chlorine` (legacy)
-- `sensor.backyard_pool_free_chlorine` 
+- `sensor.backyard_pool_free_chlorine`
 - `sensor.backyard_pool_total_chlorine`
 - `sensor.backyard_pool_combined_chlorine` (calculated)
 

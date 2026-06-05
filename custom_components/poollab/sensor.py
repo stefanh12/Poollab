@@ -10,6 +10,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .coordinator import PoollabDataUpdateCoordinator
 from .const import (
+    CONF_OPTION_DEVICES,
+    CONF_SANITATION_MODE,
     DOMAIN,
     SENSOR_CONFIGS,
     SENSOR_TYPE_PH,
@@ -27,6 +29,8 @@ from .const import (
     SENSOR_TYPE_BOUND_CYA,
     SENSOR_TYPE_MEASUREMENT_COUNT,
     SENSOR_TYPE_LAST_MEASUREMENT,
+    SANITATION_MODE_CHLORINE,
+    get_sensor_types_for_sanitation,
     is_measurement_value_in_range,
 )
 from .time_utils import parse_measurement_timestamp
@@ -42,6 +46,7 @@ async def async_setup_entry(
     """Set up sensor platform."""
     data = hass.data[DOMAIN][config_entry.entry_id]
     coordinators = data["coordinators"]
+    configured_devices = config_entry.options.get(CONF_OPTION_DEVICES, {})
 
     sensors = []
 
@@ -50,23 +55,13 @@ async def async_setup_entry(
         coordinator = device_data["coordinator"]
         device_name = device_data["name"]
 
-        for sensor_type in [
-            SENSOR_TYPE_PH,
-            SENSOR_TYPE_CL,
-            SENSOR_TYPE_FREE_CL,
-            SENSOR_TYPE_TOTAL_CL,
-            SENSOR_TYPE_COMBINED_CL,
-            SENSOR_TYPE_BROMINE,
-            SENSOR_TYPE_ACTIVE_OXYGEN,
-            SENSOR_TYPE_TEMP,
-            SENSOR_TYPE_ALK,
-            SENSOR_TYPE_CYA,
-            SENSOR_TYPE_SALT,
-            SENSOR_TYPE_UNBOUND_CL,
-            SENSOR_TYPE_BOUND_CYA,
-            SENSOR_TYPE_MEASUREMENT_COUNT,
-            SENSOR_TYPE_LAST_MEASUREMENT,
-        ]:
+        device_mode = device_data.get("sanitation_mode")
+        if not device_mode and isinstance(configured_devices.get(device_id), dict):
+            device_mode = configured_devices[device_id].get(CONF_SANITATION_MODE)
+        if not device_mode:
+            device_mode = SANITATION_MODE_CHLORINE
+
+        for sensor_type in get_sensor_types_for_sanitation(device_mode):
             sensors.append(
                 PoollabSensor(
                     coordinator,

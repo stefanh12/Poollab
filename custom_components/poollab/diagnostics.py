@@ -25,6 +25,7 @@ async def async_get_config_entry_diagnostics(
         coordinator = device_data.get("coordinator")
         device_info = device_data.get("device", {})
         device_name = device_data.get("name")
+        sanitation_mode = device_data.get("sanitation_mode")
 
         # Build measurement summary from coordinator data
         coordinator_data: dict = getattr(coordinator, "data", None) or {}
@@ -62,6 +63,7 @@ async def async_get_config_entry_diagnostics(
                 "name": device_name,
                 "account": device_info.get("account"),
                 "serial_number": device_info.get("serialNumber"),
+                "sanitation_mode": sanitation_mode,
                 "coordinator": {
                     "last_update_success": getattr(coordinator, "last_update_success", None),
                     "last_update_success_time": str(

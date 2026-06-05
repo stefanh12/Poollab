@@ -3,6 +3,14 @@
 DOMAIN = "poollab"
 DEFAULT_NAME = "Poollab"
 
+# Config option keys
+CONF_OPTION_DEVICES = "devices"
+CONF_SANITATION_MODE = "sanitation_mode"
+
+# Sanitation modes
+SANITATION_MODE_CHLORINE = "chlorine"
+SANITATION_MODE_BROMINE_ACTIVE_OXYGEN = "bromine_active_oxygen"
+
 # API
 API_URL = "https://backend.labcom.cloud/graphql"
 API_TIMEOUT = 30  # seconds
@@ -169,6 +177,37 @@ SENSOR_CONFIGS = {
         "icon": "mdi:clock-outline",
     },
 }
+
+_COMMON_SENSOR_TYPES = (
+    SENSOR_TYPE_PH,
+    SENSOR_TYPE_TEMP,
+    SENSOR_TYPE_ALK,
+    SENSOR_TYPE_SALT,
+    SENSOR_TYPE_MEASUREMENT_COUNT,
+    SENSOR_TYPE_LAST_MEASUREMENT,
+)
+
+_CHLORINE_SENSOR_TYPES = (
+    SENSOR_TYPE_CL,
+    SENSOR_TYPE_FREE_CL,
+    SENSOR_TYPE_TOTAL_CL,
+    SENSOR_TYPE_COMBINED_CL,
+    SENSOR_TYPE_CYA,
+    SENSOR_TYPE_UNBOUND_CL,
+    SENSOR_TYPE_BOUND_CYA,
+)
+
+_BROMINE_ACTIVE_OXYGEN_SENSOR_TYPES = (
+    SENSOR_TYPE_BROMINE,
+    SENSOR_TYPE_ACTIVE_OXYGEN,
+)
+
+
+def get_sensor_types_for_sanitation(mode: str) -> tuple[str, ...]:
+    """Return the enabled sensor types for a sanitation mode."""
+    if mode == SANITATION_MODE_BROMINE_ACTIVE_OXYGEN:
+        return _COMMON_SENSOR_TYPES + _BROMINE_ACTIVE_OXYGEN_SENSOR_TYPES
+    return _COMMON_SENSOR_TYPES + _CHLORINE_SENSOR_TYPES
 
 
 def is_measurement_value_in_range(sensor_type: str, value: float) -> bool:
