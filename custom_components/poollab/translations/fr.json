@@ -17,7 +17,7 @@
       },
       "sanitation": {
         "title": "Methode de desinfection",
-        "description": "Choisissez la methode de desinfection pour {device_name}.\n\nAppareil {current_index} sur {total_devices}",
+        "description": "Choisissez la methode de desinfection pour {device_name}.\n\nLe mode chlore expose les capteurs de chlore et le stabilisant (CYA). Le mode brome + oxygene actif expose uniquement les capteurs de brome et d'oxygene actif.\n\nAppareil {current_index} sur {total_devices}",
         "data": {
           "sanitation_mode": "Methode de desinfection"
         }

@@ -350,15 +350,15 @@ async def test_get_measurements_caching():
     session.post = MagicMock(return_value=create_async_context_manager_mock(mock_response))
 
     client = PoollabApiClient("test_token", session)
-    
+
     # First call
     measurements1 = await client.get_measurements()
     assert len(measurements1) == 1
-    
+
     # Second call should use cache (within 30 second TTL)
     measurements2 = await client.get_measurements()
     assert len(measurements2) == 1
-    
+
     # Session.post should still only have been called once due to caching
     # (The mock tracks how many times post was called)
     assert session.post.call_count == 1
@@ -486,7 +486,7 @@ async def test_get_measurements_with_all_parameter_types():
     measurements = await client.get_measurements()
 
     assert len(measurements) == 8
-    
+
     # Verify all parameter types are present
     parameters = {m["parameter"] for m in measurements}
     assert "PL pH" in parameters
@@ -515,3 +515,31 @@ async def test_get_devices_no_measurements():
     devices = await client.get_devices()
 
     assert devices == []
+
+
+@pytest.mark.asyncio
+async def test_close_does_not_close_external_session():
+    """Client must not close Home Assistant's shared session."""
+    session = MagicMock()
+    session.closed = False
+    session.close = AsyncMock()
+
+    client = PoollabApiClient("test_token", session)
+    await client.close()
+
+    session.close.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_close_closes_owned_session(monkeypatch):
+    """Client should close a session only when it created it."""
+    owned_session = MagicMock()
+    owned_session.closed = False
+    owned_session.close = AsyncMock()
+
+    monkeypatch.setattr(aiohttp, "ClientSession", lambda: owned_session)
+
+    client = PoollabApiClient("test_token")
+    await client.close()
+
+    owned_session.close.assert_awaited_once()

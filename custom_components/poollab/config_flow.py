@@ -34,7 +34,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._pending_devices: list[dict[str, Any]] = []
         self._selected_sanitation_modes: dict[str, str] = {}
         self._device_selection_index = 0
-        self._reconfigure_entry_id: Optional[str] = None
+        self._target_entry_id: Optional[str] = None
 
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -205,7 +205,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._pending_token = token
         self._pending_devices = self._build_device_descriptors(devices)
         self._device_selection_index = 0
-        self._reconfigure_entry_id = reconfigure_entry_id
+        self._target_entry_id = reconfigure_entry_id
 
         previous_modes = {}
         if existing_options:
@@ -229,19 +229,24 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             for device_id, mode in self._selected_sanitation_modes.items()
         }
 
-        if self._reconfigure_entry_id:
-            reconfigure_entry = self.hass.config_entries.async_get_entry(self._reconfigure_entry_id)
+        if self._target_entry_id:
+            reconfigure_entry = self.hass.config_entries.async_get_entry(
+                self._target_entry_id
+            )
             if reconfigure_entry is None:
                 return self.async_abort(reason="unknown")
 
-            options_updates = {
+            merged_options = {
                 **reconfigure_entry.options,
                 CONF_OPTION_DEVICES: device_options,
             }
+            self.hass.config_entries.async_update_entry(
+                reconfigure_entry,
+                options=merged_options,
+            )
             return self.async_update_reload_and_abort(
                 reconfigure_entry,
                 data_updates={CONF_TOKEN: self._pending_token},
-                options_updates=options_updates,
             )
 
         return self.async_create_entry(

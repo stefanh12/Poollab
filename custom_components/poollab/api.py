@@ -26,7 +26,8 @@ class PoollabApiClient:
     def __init__(self, token: str, session: Optional[aiohttp.ClientSession] = None):
         """Initialize the API client."""
         self.token = token
-        self._session = session
+        self._owns_session = session is None
+        self._session = session or aiohttp.ClientSession()
         self._request_lock = asyncio.Lock()
         self._last_request_time: Optional[datetime] = None
         self._max_retries = MAX_API_RETRIES
@@ -319,7 +320,7 @@ class PoollabApiClient:
 
     async def close(self) -> None:
         """Close the session."""
-        if self._session:
+        if self._owns_session and self._session and not self._session.closed:
             await self._session.close()
 
 

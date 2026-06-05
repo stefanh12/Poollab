@@ -112,7 +112,7 @@ def test_begin_sanitation_selection_prefills_existing_modes_for_matching_devices
     )
 
     assert flow._pending_token == "abc"
-    assert flow._reconfigure_entry_id == "entry123"
+    assert flow._target_entry_id == "entry123"
     assert len(flow._pending_devices) == 2
     assert flow._selected_sanitation_modes == {"Pool A": "chlorine"}
 
@@ -150,7 +150,7 @@ def test_finish_sanitation_selection_updates_reconfigure_options():
     PoollabConfigFlow = _load_config_flow_class()
     flow = PoollabConfigFlow()
     flow._pending_token = "new-token"
-    flow._reconfigure_entry_id = "entry123"
+    flow._target_entry_id = "entry123"
     flow._selected_sanitation_modes = {"Pool A": "chlorine"}
 
     reconfigure_entry = MagicMock()
@@ -159,11 +159,18 @@ def test_finish_sanitation_selection_updates_reconfigure_options():
     flow.hass = MagicMock()
     flow.hass.config_entries.async_get_entry.return_value = reconfigure_entry
 
-    def _update_reload(entry, data_updates, options_updates):
+    update_entry_calls = {}
+
+    def _update_entry(entry, **kwargs):
+        update_entry_calls["entry"] = entry
+        update_entry_calls.update(kwargs)
+
+    flow.hass.config_entries.async_update_entry = _update_entry
+
+    def _update_reload(entry, data_updates):
         return {
             "entry": entry,
             "data_updates": data_updates,
-            "options_updates": options_updates,
         }
 
     flow.async_update_reload_and_abort = _update_reload
@@ -171,7 +178,8 @@ def test_finish_sanitation_selection_updates_reconfigure_options():
     result = flow._finish_sanitation_selection()
 
     assert result["entry"] == reconfigure_entry
-    assert result["options_updates"]["foo"] == "bar"
-    assert result["options_updates"][CONF_OPTION_DEVICES] == {
+    assert update_entry_calls["entry"] == reconfigure_entry
+    assert update_entry_calls["options"]["foo"] == "bar"
+    assert update_entry_calls["options"][CONF_OPTION_DEVICES] == {
         "Pool A": {CONF_SANITATION_MODE: "chlorine"}
     }
