@@ -11,7 +11,12 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import PoollabApiClient
 from .coordinator import PoollabDataUpdateCoordinator
-from .const import DOMAIN
+from .const import (
+    CONF_OPTION_DEVICES,
+    CONF_SANITATION_MODE,
+    DOMAIN,
+    SANITATION_MODE_CHLORINE,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,17 +71,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _LOGGER.info("Found %d device(s) in Poollab account", len(devices))
 
+    configured_devices = entry.options.get(CONF_OPTION_DEVICES, {})
+
     # Set up data update coordinator for each device
     coordinators = {}
     for device_idx, device in enumerate(devices):
         primary_id = device.get("account") or device.get("id")
         fallback_id = device.get("serialNumber") or device.get("id")
-        device_id = primary_id or fallback_id
+        device_id = str(primary_id) if primary_id is not None else None
+        fallback_id_str = str(fallback_id) if fallback_id is not None else None
+        if not device_id and fallback_id_str:
+            device_id = fallback_id_str
 
         # Avoid key collisions when multiple pools share the same account name.
         # This ensures all pools are preserved after token updates/reloads.
-        if device_id in coordinators and fallback_id:
-            device_id = fallback_id
+        if device_id in coordinators and fallback_id_str:
+            device_id = fallback_id_str
 
         device_name = device.get("name", f"Pool {device_idx + 1}")
 
@@ -85,6 +95,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             continue
 
         _LOGGER.info("Setting up device: %s (Account: %s)", device_name, device_id)
+
+        sanitation_mode = (
+            configured_devices.get(device_id, {}).get(CONF_SANITATION_MODE)
+            if isinstance(configured_devices.get(device_id), dict)
+            else None
+        )
+        if not sanitation_mode:
+            sanitation_mode = SANITATION_MODE_CHLORINE
 
         # Create coordinator for this device
         coordinator = PoollabDataUpdateCoordinator(hass, api_client, device_id)
@@ -111,6 +129,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "coordinator": coordinator,
             "device": device,
             "name": device_name,
+            "sanitation_mode": sanitation_mode,
         }
 
     if not coordinators:

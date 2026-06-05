@@ -14,6 +14,13 @@
         "data": {
           "token": "Personal API Token"
         }
+      },
+      "sanitation": {
+        "title": "Sanitation Method",
+        "description": "Choose the sanitation method for {device_name}.\n\nDevice {current_index} of {total_devices}",
+        "data": {
+          "sanitation_mode": "Sanitation Method"
+        }
       }
     },
     "error": {
@@ -24,7 +31,8 @@
     },
     "abort": {
       "already_configured": "Integration is already configured",
-      "reconfigure_successful": "Reconfiguration was successful"
+      "reconfigure_successful": "Reconfiguration was successful",
+      "unknown": "An unknown error occurred"
     }
   }
 }

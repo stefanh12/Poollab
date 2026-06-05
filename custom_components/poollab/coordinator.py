@@ -45,7 +45,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
         self.api_client = api_client
         self.device_id = device_id
         self.data = {}
-        self._last_api_errors: dict[str, dict | None] = {
+        self._last_api_errors: dict[str, Optional[dict]] = {
             "measurements": None,
             "active_chlorine": None,
             "update": None,
@@ -59,7 +59,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
         )
 
     @property
-    def last_api_errors(self) -> dict[str, dict | None]:
+    def last_api_errors(self) -> dict[str, Optional[dict]]:
         """Return the latest API-related errors for diagnostics."""
         return self._last_api_errors
 

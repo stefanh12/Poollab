@@ -24,7 +24,7 @@
       {
         "label": "Start Home Assistant",
         "type": "shell",
-        "command": "sudo chmod a+x /usr/bin/supervisor* && sudo -E supervisor_run",
+        "command": "command -v supervisor_run >/dev/null 2>&1 || { echo 'Not inside Home Assistant dev container. Reopen in container first.'; exit 1; }; for f in /usr/bin/supervisor*(N); do sudo chmod a+x \"$f\"; done; sudo -E supervisor_run",
         "group": {
           "kind": "test",
           "isDefault": true
