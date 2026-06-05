@@ -1,5 +1,7 @@
 # Pool Chlorine Chemistry - Understanding Your Chlorine Sensors
 
+This guide is chlorine-specific. If you use alternative sanitizers, see [BROMINE_CHEMISTRY.md](BROMINE_CHEMISTRY.md) and [ACTIVE_OXYGEN_CHEMISTRY.md](ACTIVE_OXYGEN_CHEMISTRY.md).
+
 ## Overview
 
 The Poollab integration provides detailed chlorine measurements to help you maintain optimal pool water quality. Understanding the different types of chlorine is essential for proper pool chemistry management.
