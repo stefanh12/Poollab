@@ -7,12 +7,20 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
 - 🏊 **Multiple Pools Support** - Monitor all your pools/devices with a single integration
 - 🏖️ Monitor pH levels
 - 💧 Track chlorine levels (free, total, combined, unbound, and CYA-bound)
+- 🟤 Monitor bromine residual
+- 🫧 Monitor active oxygen (MPS) residual
 - 🌡️ Monitor water temperature
 - ⚗️ Alkalinity tracking
 - 🛡️ Stabilizer (CYA) monitoring in chlorine mode
 - 🧂 Salt level monitoring
 - 🔄 Automatic updates every 5 minutes
 - ✅ Data validation — out-of-range values are discarded automatically
+
+## Chemistry Guides
+
+- [CHLORINE_CHEMISTRY.md](CHLORINE_CHEMISTRY.md)
+- [BROMINE_CHEMISTRY.md](BROMINE_CHEMISTRY.md)
+- [ACTIVE_OXYGEN_CHEMISTRY.md](ACTIVE_OXYGEN_CHEMISTRY.md)
 
 ## Installation
 
@@ -93,6 +101,16 @@ During setup, each device is assigned a sanitation method:
 | **Measurement Count** | Total number of measurements stored for the device |
 | **Last Measurement**  | Timestamp of the most recent measurement           |
 
+### Sanitizer Comparison (Quick Reference)
+
+| Sanitizer | Sensor | Integration Behavior | Typical Practical Target* | Documented Valid Range |
+|-----------|--------|----------------------|---------------------------|------------------------|
+| Chlorine | `sensor.pool_name_free_chlorine` (plus total/combined/unbound/bound variants) | Mix of direct values + calculated metrics (combined/unbound/bound) | Free chlorine: 1-3 ppm; Combined chlorine: < 0.5 ppm | 0-10 ppm (free/total), 0-5 ppm (combined), 0-10 ppm (unbound/bound) |
+| Bromine | `sensor.pool_name_bromine` | Direct LabCom measurement (`PL Bromine`) | Often 2-5 ppm | 0-13.5 ppm |
+| Active Oxygen | `sensor.pool_name_active_oxygen` | Direct LabCom measurement with multiple aliases (MPS and localized names) | Often 4-8 ppm | 0-30 ppm |
+
+\* Practical targets depend on product instructions, local regulations, pool/spa type, and water conditions.
+
 ### Chlorine Chemistry
 
 The integration provides detailed chlorine measurements in **chlorine mode**:
@@ -102,7 +120,21 @@ The integration provides detailed chlorine measurements in **chlorine mode**:
 - **Combined Chlorine**: Automatically calculated as (Total − Free). Represents chloramines and water quality. Should be < 0.5 ppm.
 - **Unbound Chlorine / Bound to CYA**: Calculated by the LabCom `ActiveChlorine` API using your pH, temperature, chlorine, and CYA readings. Requires at least pH and free chlorine measurements to be available.
 
-See [CHLORINE_CHEMISTRY.md](CHLORINE_CHEMISTRY.md) for detailed guidance on interpreting these values and using them in automations.
+### Bromine Chemistry
+
+- **Bromine**: Direct bromine residual measurement from LabCom (`PL Bromine`). No local formula is applied by the integration.
+- Useful when your pool or spa uses bromine tablets/systems instead of chlorine.
+
+See [BROMINE_CHEMISTRY.md](BROMINE_CHEMISTRY.md) for detailed bromine guidance and automation ideas.
+
+### Active Oxygen Chemistry
+
+- **Active Oxygen**: Direct residual measurement from LabCom. The integration supports multiple field name variants used by LabCom exports, including `PL Active Oxygen`, `PL Active Oxygen (MPS)`, `PL Active Oxygen MPS`, `PL MPS`, and German labels.
+- Useful when your system uses MPS/active oxygen sanitizing products.
+
+See [ACTIVE_OXYGEN_CHEMISTRY.md](ACTIVE_OXYGEN_CHEMISTRY.md) for interpretation guidance and automation examples.
+
+For chlorine-specific deep guidance, see [CHLORINE_CHEMISTRY.md](CHLORINE_CHEMISTRY.md).
 
 ## Data Validation
 
