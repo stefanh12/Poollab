@@ -241,7 +241,7 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
                 formatted_text = str(formatted_value).strip()
                 if formatted_text and not self._is_numeric_text(formatted_text):
                     _LOGGER.warning(
-                        "Value %s for parameter %s (%s) is outside valid range [%s, %s], using formatted status %s",
+                        "Value %s for parameter %s (%s) is outside valid range [%s, %s], discarding non-numeric formatted status %s",
                         float_value,
                         param_name,
                         self.sensor_type,
@@ -249,7 +249,7 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
                         config.get("max"),
                         formatted_text,
                     )
-                    return formatted_text
+                    return None
 
             _LOGGER.warning(
                 "Value %s for parameter %s (%s) is outside valid range [%s, %s], ignoring",
