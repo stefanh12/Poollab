@@ -1,6 +1,9 @@
 """Tests for sensor value range validation."""
 
-import pytest
+import importlib
+import sys
+from types import ModuleType, SimpleNamespace
+
 from poollab.const import (
     is_measurement_value_in_range,
     SENSOR_TYPE_PH,
@@ -116,3 +119,61 @@ class TestIsValueInRange:
     def test_unknown_sensor_type_is_always_valid(self):
         """Values for unknown sensor types have no min/max, so always valid."""
         assert is_measurement_value_in_range("unknown_sensor", 9999.0) is True
+
+
+class TestMeasurementNativeValue:
+    """Tests for sensor measurement value handling."""
+
+    @staticmethod
+    def _sensor(sensor_type: str, monkeypatch) -> object:
+        sensor_component = ModuleType("homeassistant.components.sensor")
+        sensor_component.SensorEntity = type("SensorEntity", (), {})
+        sensor_component.SensorDeviceClass = SimpleNamespace(TIMESTAMP="timestamp")
+        monkeypatch.setitem(sys.modules, "homeassistant.components.sensor", sensor_component)
+
+        ha_const = ModuleType("homeassistant.const")
+        ha_const.EntityCategory = SimpleNamespace(DIAGNOSTIC="diagnostic")
+        ha_const.UnitOfTemperature = SimpleNamespace(CELSIUS="°C")
+        monkeypatch.setitem(sys.modules, "homeassistant.const", ha_const)
+
+        ha_core = ModuleType("homeassistant.core")
+        ha_core.HomeAssistant = type("HomeAssistant", (), {})
+        monkeypatch.setitem(sys.modules, "homeassistant.core", ha_core)
+
+        entity_platform = ModuleType("homeassistant.helpers.entity_platform")
+        entity_platform.AddEntitiesCallback = object
+        monkeypatch.setitem(sys.modules, "homeassistant.helpers.entity_platform", entity_platform)
+
+        update_coordinator = ModuleType("homeassistant.helpers.update_coordinator")
+        update_coordinator.CoordinatorEntity = type("CoordinatorEntity", (), {})
+        update_coordinator.DataUpdateCoordinator = type("DataUpdateCoordinator", (), {})
+        update_coordinator.UpdateFailed = type("UpdateFailed", (Exception,), {})
+        monkeypatch.setitem(sys.modules, "homeassistant.helpers.update_coordinator", update_coordinator)
+
+        sys.modules.pop("poollab.sensor", None)
+        sensor_module = importlib.import_module("poollab.sensor")
+
+        PoollabSensor = sensor_module.PoollabSensor
+        sensor = PoollabSensor.__new__(PoollabSensor)
+        sensor.sensor_type = sensor_type
+        return sensor
+
+    def test_out_of_range_with_overrange_status_is_discarded(self, monkeypatch):
+        """Non-numeric OVERANGE/OVERRANGE formatted status should be discarded."""
+        sensor = self._sensor(SENSOR_TYPE_CYA, monkeypatch)
+        measurement = {
+            "value": 250,
+            "formatted_value": "OVERRANGE",
+        }
+
+        assert sensor._measurement_native_value(measurement, "PL Cyanuric Acid") is None
+
+    def test_out_of_range_with_overange_status_is_discarded(self, monkeypatch):
+        """Non-numeric OVERANGE formatted status should be discarded."""
+        sensor = self._sensor(SENSOR_TYPE_CYA, monkeypatch)
+        measurement = {
+            "value": 250,
+            "formatted_value": "OVERANGE",
+        }
+
+        assert sensor._measurement_native_value(measurement, "PL Cyanuric Acid") is None
