@@ -14,6 +14,7 @@ from poollab.const import (
     SENSOR_TYPE_ALK,
     SENSOR_TYPE_CYA,
     SENSOR_TYPE_SALT,
+    SENSOR_TYPE_INVALID_MEASUREMENT_COUNT,
 )
 
 
@@ -177,3 +178,13 @@ class TestMeasurementNativeValue:
         }
 
         assert sensor._measurement_native_value(measurement, "PL Cyanuric Acid") is None
+
+    def test_invalid_measurement_count_sensor_uses_coordinator_value(self, monkeypatch):
+        """Invalid measurement count diagnostic should expose coordinator data."""
+        sensor = self._sensor(SENSOR_TYPE_INVALID_MEASUREMENT_COUNT, monkeypatch)
+        sensor.coordinator = SimpleNamespace(
+            data={"invalid_measurement_count": 3},
+            last_update_success=True,
+        )
+
+        assert sensor.native_value == 3

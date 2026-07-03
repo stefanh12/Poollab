@@ -28,6 +28,7 @@ from .const import (
     SENSOR_TYPE_UNBOUND_CL,
     SENSOR_TYPE_BOUND_CYA,
     SENSOR_TYPE_MEASUREMENT_COUNT,
+    SENSOR_TYPE_INVALID_MEASUREMENT_COUNT,
     SENSOR_TYPE_LAST_MEASUREMENT,
     SANITATION_MODE_CHLORINE,
     get_sensor_types_for_sanitation,
@@ -115,7 +116,11 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             self._attr_device_class = SensorDeviceClass.TIMESTAMP
 
         # Mark diagnostic sensors
-        if sensor_type in (SENSOR_TYPE_MEASUREMENT_COUNT, SENSOR_TYPE_LAST_MEASUREMENT):
+        if sensor_type in (
+            SENSOR_TYPE_MEASUREMENT_COUNT,
+            SENSOR_TYPE_INVALID_MEASUREMENT_COUNT,
+            SENSOR_TYPE_LAST_MEASUREMENT,
+        ):
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
         # Set device info to group sensors by pool
@@ -171,6 +176,10 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             # coordinator.data["measurements"] is already filtered for this device
             measurements = self.coordinator.data.get("measurements", [])
             return len(measurements)
+
+        # Handle invalid measurement count sensor
+        if self.sensor_type == SENSOR_TYPE_INVALID_MEASUREMENT_COUNT:
+            return self.coordinator.data.get("invalid_measurement_count", 0)
 
         # Handle last measurement time sensor
         if self.sensor_type == SENSOR_TYPE_LAST_MEASUREMENT:
@@ -326,7 +335,11 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             return {}
 
         # Diagnostic sensors have no extra attributes
-        if self.sensor_type in (SENSOR_TYPE_MEASUREMENT_COUNT, SENSOR_TYPE_LAST_MEASUREMENT):
+        if self.sensor_type in (
+            SENSOR_TYPE_MEASUREMENT_COUNT,
+            SENSOR_TYPE_INVALID_MEASUREMENT_COUNT,
+            SENSOR_TYPE_LAST_MEASUREMENT,
+        ):
             return {}
 
         attributes = {}

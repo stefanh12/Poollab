@@ -99,6 +99,7 @@ During setup, each device is assigned a sanitation method:
 | Sensor                | Description                                        |
 | --------------------- | -------------------------------------------------- |
 | **Measurement Count** | Total number of measurements stored for the device |
+| **Invalid Measurement Count** | Total number of overrange/invalid measurements stored for the device |
 | **Last Measurement**  | Timestamp of the most recent measurement           |
 
 ### Sanitizer Comparison (Quick Reference)

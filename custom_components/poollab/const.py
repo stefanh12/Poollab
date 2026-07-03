@@ -48,6 +48,7 @@ SENSOR_TYPE_BOUND_CYA = "bound_to_cya"  # Chlorine bound to CYA
 
 # Device diagnostic sensors
 SENSOR_TYPE_MEASUREMENT_COUNT = "measurement_count"  # Total number of measurements for the device
+SENSOR_TYPE_INVALID_MEASUREMENT_COUNT = "invalid_measurement_count"  # Total invalid/overrange measurements for the device
 SENSOR_TYPE_LAST_MEASUREMENT = "last_measurement"  # Timestamp of the most recent measurement
 
 # Sensor configurations
@@ -171,6 +172,11 @@ SENSOR_CONFIGS = {
         "unit": None,
         "icon": "mdi:counter",
     },
+    SENSOR_TYPE_INVALID_MEASUREMENT_COUNT: {
+        "name": "Invalid Measurement Count",
+        "unit": None,
+        "icon": "mdi:counter-off",
+    },
     SENSOR_TYPE_LAST_MEASUREMENT: {
         "name": "Last Measurement",
         "unit": None,
@@ -184,6 +190,7 @@ _COMMON_SENSOR_TYPES = (
     SENSOR_TYPE_ALK,
     SENSOR_TYPE_SALT,
     SENSOR_TYPE_MEASUREMENT_COUNT,
+    SENSOR_TYPE_INVALID_MEASUREMENT_COUNT,
     SENSOR_TYPE_LAST_MEASUREMENT,
 )
 
