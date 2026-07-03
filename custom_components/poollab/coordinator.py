@@ -16,20 +16,67 @@ from .const import (
     DOMAIN,
     SCAN_INTERVAL,
     SENSOR_CONFIGS,
-    SENSOR_TYPE_PH,
-    SENSOR_TYPE_FREE_CL,
+    SENSOR_TYPE_ACTIVE_OXYGEN,
+    SENSOR_TYPE_ALK,
+    SENSOR_TYPE_BROMINE,
     SENSOR_TYPE_CYA,
+    SENSOR_TYPE_FREE_CL,
+    SENSOR_TYPE_PH,
+    SENSOR_TYPE_SALT,
     SENSOR_TYPE_TEMP,
+    SENSOR_TYPE_TOTAL_CL,
     is_measurement_value_in_range,
 )
 from .time_utils import measurement_timestamp_sort_key
 
 _LOGGER = logging.getLogger(__name__)
 
+MEASUREMENT_SENSOR_TYPES = {
+    "PL pH": SENSOR_TYPE_PH,
+    "PL Chlorine Free": SENSOR_TYPE_FREE_CL,
+    "PL Total Chlorine": SENSOR_TYPE_TOTAL_CL,
+    "PL Chlorine Total": SENSOR_TYPE_TOTAL_CL,
+    "PL Bromine": SENSOR_TYPE_BROMINE,
+    "PL Active Oxygen": SENSOR_TYPE_ACTIVE_OXYGEN,
+    "PL Active Oxygen (MPS)": SENSOR_TYPE_ACTIVE_OXYGEN,
+    "PL Active Oxygen MPS": SENSOR_TYPE_ACTIVE_OXYGEN,
+    "PL MPS": SENSOR_TYPE_ACTIVE_OXYGEN,
+    "PL Aktivsauerstoff": SENSOR_TYPE_ACTIVE_OXYGEN,
+    "PL Aktivsauerstoff (MPS)": SENSOR_TYPE_ACTIVE_OXYGEN,
+    "PL Temperature": SENSOR_TYPE_TEMP,
+    "PL T-Alka": SENSOR_TYPE_ALK,
+    "PL Alkalinity": SENSOR_TYPE_ALK,
+    "PL Cyanuric Acid": SENSOR_TYPE_CYA,
+    "PL Salt": SENSOR_TYPE_SALT,
+}
+
 
 def _timestamp_sort_key(measurement: dict) -> float:
     """Return a sortable timestamp key supporting unix and ISO formats."""
     return measurement_timestamp_sort_key(measurement)
+
+
+def _is_invalid_measurement(measurement: dict) -> bool:
+    """Return True if a measurement has an invalid or overrange value."""
+    sensor_type = MEASUREMENT_SENSOR_TYPES.get(measurement.get("parameter"))
+    if sensor_type is None:
+        return False
+
+    value = measurement.get("value")
+    if value is None:
+        return True
+
+    try:
+        numeric_value = float(value)
+    except (ValueError, TypeError):
+        return True
+
+    return not is_measurement_value_in_range(sensor_type, numeric_value)
+
+
+def _count_invalid_measurements(measurements: list[dict]) -> int:
+    """Count invalid or overrange measurements for a device."""
+    return sum(1 for measurement in measurements if _is_invalid_measurement(measurement))
 
 
 class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
@@ -118,6 +165,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                     "measurements": [],
                     "latest_values": {},
                     "active_chlorine": {},
+                    "invalid_measurement_count": 0,
                 }
 
             _LOGGER.debug(
@@ -315,6 +363,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                 "latest_values": latest_values,
                 "measurement_counts": measurement_counts,
                 "active_chlorine": active_chlorine_data,
+                "invalid_measurement_count": _count_invalid_measurements(device_measurements),
                 "last_measurement_time": last_measurement_time,
             }
         except asyncio.TimeoutError as err:

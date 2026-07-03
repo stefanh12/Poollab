@@ -1,1 +1,3 @@
 tests/conftest.py
+__pycache__/
+*.py[cod]
