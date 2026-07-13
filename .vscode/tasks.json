@@ -15,7 +15,7 @@
     {
       "label": "Restart HA Core",
       "type": "shell",
-      "command": "sudo mkdir -p /run/supervisor && ha supervisor info >/dev/null 2>&1 || { echo 'Supervisor is not running. Run Start Home Assistant first.'; exit 1; }; output=$(ha core restart 2>&1); exit_code=$?; if [ $exit_code -ne 0 ]; then echo \"$output\"; case \"$output\" in *\"Another job is running for job group home_assistant_core\"*) echo 'HA Core job already in progress'; exit 0;; esac; output=$(ha core start 2>&1); exit_code=$?; if [ $exit_code -ne 0 ]; then echo \"$output\"; case \"$output\" in *\"Another job is running for job group home_assistant_core\"*) echo 'HA Core job already in progress'; exit 0;; esac; exit $exit_code; fi; fi; [ -n \"$output\" ] && echo \"$output\"; echo 'HA Core command sent'",
+      "command": "sudo mkdir -p /run/supervisor && ha supervisor info >/dev/null 2>&1 || { echo 'Supervisor is not running. Run Start Home Assistant first.'; exit 1; }; max_attempts=24; attempt=1; while [ $attempt -le $max_attempts ]; do output=$(ha core restart 2>&1); exit_code=$?; if [ $exit_code -eq 0 ]; then [ -n \"$output\" ] && echo \"$output\"; echo 'HA Core restart command sent'; exit 0; fi; case \"$output\" in *\"Another job is running for job group home_assistant_core\"*) if [ $attempt -eq $max_attempts ]; then echo 'Timed out waiting for Home Assistant Core to become restartable'; echo \"$output\"; exit 1; fi; echo \"HA Core busy; waiting to retry restart ($attempt/$max_attempts)\"; attempt=$((attempt + 1)); sleep 5;; *\"Home Assistant Core is not running\"*) output=$(ha core start 2>&1); exit_code=$?; if [ $exit_code -eq 0 ]; then [ -n \"$output\" ] && echo \"$output\"; echo 'HA Core start command sent'; exit 0; fi; echo \"$output\"; exit $exit_code;; *) echo \"$output\"; exit $exit_code;; esac; done; echo 'Failed to restart Home Assistant Core'; exit 1;",
       "problemMatcher": []
     },
     {
@@ -24,6 +24,21 @@
       "dependsOn": [
         "Copy Integration to custom_components",
         "Restart HA Core"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Recover HA Supervisor + Core",
+      "type": "shell",
+      "command": "sudo mkdir -p /run/supervisor && ha supervisor restart >/dev/null 2>&1 || { echo 'Failed to request Supervisor restart'; exit 1; }; supervisor_attempts=36; while [ $supervisor_attempts -gt 0 ]; do if ha supervisor info >/dev/null 2>&1; then break; fi; supervisor_attempts=$((supervisor_attempts - 1)); if [ $supervisor_attempts -eq 0 ]; then echo 'Timed out waiting for Home Assistant Supervisor'; exit 1; fi; echo 'Waiting for Home Assistant Supervisor to come back...'; sleep 5; done; core_attempts=36; while [ $core_attempts -gt 0 ]; do output=$(ha core start 2>&1); exit_code=$?; if [ $exit_code -eq 0 ]; then [ -n \"$output\" ] && echo \"$output\"; echo 'HA Core recovery command sent'; exit 0; fi; case \"$output\" in *\"Another job is running for job group home_assistant_core\"*|*\"EOF\"*|*\"connect: connection refused\"*) core_attempts=$((core_attempts - 1)); if [ $core_attempts -eq 0 ]; then echo 'Timed out waiting for Home Assistant Core recovery'; echo \"$output\"; exit 1; fi; echo 'Waiting for Home Assistant Core recovery...'; sleep 5;; *\"Home Assistant Core is already running\"*) echo 'HA Core is already running'; exit 0;; *) echo \"$output\"; exit $exit_code;; esac; done; echo 'Failed to recover Home Assistant Core'; exit 1;",
+      "problemMatcher": []
+    },
+    {
+      "label": "Copy + Recover HA",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Copy Integration to custom_components",
+        "Recover HA Supervisor + Core"
       ],
       "problemMatcher": []
     },

@@ -14,9 +14,12 @@ from .api import PoollabApiClient
 from .const import (
     CONF_OPTION_DEVICES,
     CONF_SANITATION_MODE,
+    CONF_UPDATE_MODE,
     DOMAIN,
     SANITATION_MODE_BROMINE_ACTIVE_OXYGEN,
     SANITATION_MODE_CHLORINE,
+    UPDATE_MODE_MANUAL,
+    UPDATE_MODE_POLLING,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -33,6 +36,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._pending_token: Optional[str] = None
         self._pending_devices: list[dict[str, Any]] = []
         self._selected_sanitation_modes: dict[str, str] = {}
+        self._selected_update_modes: dict[str, str] = {}
         self._device_selection_index = 0
         self._target_entry_id: Optional[str] = None
 
@@ -148,9 +152,13 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not self._pending_token or not self._pending_devices:
             return self.async_abort(reason="unknown")
 
+        if self._device_selection_index >= len(self._pending_devices):
+            return self._finish_sanitation_selection()
+
         if user_input is not None:
             current_device = self._pending_devices[self._device_selection_index]
             self._selected_sanitation_modes[current_device["id"]] = user_input[CONF_SANITATION_MODE]
+            self._selected_update_modes[current_device["id"]] = user_input[CONF_UPDATE_MODE]
             self._device_selection_index += 1
 
             if self._device_selection_index >= len(self._pending_devices):
@@ -158,6 +166,10 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         current_device = self._pending_devices[self._device_selection_index]
         current_mode = self._selected_sanitation_modes.get(current_device["id"])
+        current_update_mode = self._selected_update_modes.get(
+            current_device["id"],
+            UPDATE_MODE_POLLING,
+        )
 
         selector_config = selector.SelectSelectorConfig(
             options=[
@@ -177,9 +189,27 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if current_mode is not None:
             field = vol.Required(CONF_SANITATION_MODE, default=current_mode)
 
+        update_mode_selector_config = selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(
+                    value=UPDATE_MODE_POLLING,
+                    label="Cloud polling",
+                ),
+                selector.SelectOptionDict(
+                    value=UPDATE_MODE_MANUAL,
+                    label="Manual refresh (12h safety sync)",
+                ),
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+
         data_schema = vol.Schema(
             {
                 field: selector.SelectSelector(selector_config),
+                vol.Required(
+                    CONF_UPDATE_MODE,
+                    default=current_update_mode,
+                ): selector.SelectSelector(update_mode_selector_config),
             }
         )
 
@@ -208,10 +238,16 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._target_entry_id = reconfigure_entry_id
 
         previous_modes = {}
+        previous_update_modes = {}
         if existing_options:
             previous_devices = existing_options.get(CONF_OPTION_DEVICES, {})
             previous_modes = {
                 device_id: device_config.get(CONF_SANITATION_MODE)
+                for device_id, device_config in previous_devices.items()
+                if isinstance(device_config, dict)
+            }
+            previous_update_modes = {
+                device_id: device_config.get(CONF_UPDATE_MODE)
                 for device_id, device_config in previous_devices.items()
                 if isinstance(device_config, dict)
             }
@@ -221,11 +257,18 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             for device in self._pending_devices
             if device["id"] in previous_modes and previous_modes[device["id"]]
         }
+        self._selected_update_modes = {
+            device["id"]: previous_update_modes.get(device["id"], UPDATE_MODE_POLLING)
+            for device in self._pending_devices
+        }
 
     def _finish_sanitation_selection(self) -> FlowResult:
         """Persist selected sanitation modes and finish flow."""
         device_options = {
-            device_id: {CONF_SANITATION_MODE: mode}
+            device_id: {
+                CONF_SANITATION_MODE: mode,
+                CONF_UPDATE_MODE: self._selected_update_modes.get(device_id, UPDATE_MODE_POLLING),
+            }
             for device_id, mode in self._selected_sanitation_modes.items()
         }
 

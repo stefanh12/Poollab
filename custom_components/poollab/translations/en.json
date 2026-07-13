@@ -17,9 +17,10 @@
       },
       "sanitation": {
         "title": "Sanitation Method",
-        "description": "Choose the sanitation method for {device_name}.\n\nChlorine mode exposes chlorine sensors and Stabilizer (CYA). Bromine + Active Oxygen mode exposes bromine and active oxygen sensors only.\n\nDevice {current_index} of {total_devices}",
+        "description": "Choose the sanitation and update mode for {device_name}.\n\nChlorine mode exposes chlorine sensors and Stabilizer (CYA). Bromine + Active Oxygen mode exposes bromine and active oxygen sensors only.\n\nCloud polling checks backend data regularly. Manual refresh uses a button entity, plus a safety refresh every 12 hours.\n\nDevice {current_index} of {total_devices}",
         "data": {
-          "sanitation_mode": "Sanitation Method"
+          "sanitation_mode": "Sanitation Method",
+          "update_mode": "Backend Update Mode"
         }
       }
     },

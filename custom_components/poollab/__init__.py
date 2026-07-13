@@ -14,13 +14,15 @@ from .coordinator import PoollabDataUpdateCoordinator
 from .const import (
     CONF_OPTION_DEVICES,
     CONF_SANITATION_MODE,
+    CONF_UPDATE_MODE,
     DOMAIN,
     SANITATION_MODE_CHLORINE,
+    UPDATE_MODE_POLLING,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: Final = [Platform.SENSOR]
+PLATFORMS: Final = [Platform.SENSOR, Platform.BUTTON]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -104,8 +106,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not sanitation_mode:
             sanitation_mode = SANITATION_MODE_CHLORINE
 
+        update_mode = (
+            configured_devices.get(device_id, {}).get(CONF_UPDATE_MODE)
+            if isinstance(configured_devices.get(device_id), dict)
+            else None
+        )
+        if not update_mode:
+            update_mode = UPDATE_MODE_POLLING
+
         # Create coordinator for this device
-        coordinator = PoollabDataUpdateCoordinator(hass, api_client, device_id)
+        coordinator = PoollabDataUpdateCoordinator(
+            hass,
+            api_client,
+            device_id,
+            update_mode,
+        )
 
         # Initial data fetch with timeout
         try:
@@ -130,6 +145,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "device": device,
             "name": device_name,
             "sanitation_mode": sanitation_mode,
+            "update_mode": update_mode,
         }
 
     if not coordinators:

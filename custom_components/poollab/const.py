@@ -6,6 +6,7 @@ DEFAULT_NAME = "Poollab"
 # Config option keys
 CONF_OPTION_DEVICES = "devices"
 CONF_SANITATION_MODE = "sanitation_mode"
+CONF_UPDATE_MODE = "update_mode"
 
 # Sanitation modes
 SANITATION_MODE_CHLORINE = "chlorine"
@@ -23,6 +24,11 @@ RATE_LIMIT_RETRY_WAIT = 60  # seconds to wait when API reports rate limit (429)
 
 # Update intervals
 SCAN_INTERVAL = 300  # 5 minutes - how often to update device data
+MANUAL_FALLBACK_INTERVAL = 43200  # 12 hours - fallback refresh cadence in manual mode
+
+# Update modes
+UPDATE_MODE_POLLING = "polling"
+UPDATE_MODE_MANUAL = "manual"
 
 # Attributes
 ATTR_DEVICE_ID = "device_id"
