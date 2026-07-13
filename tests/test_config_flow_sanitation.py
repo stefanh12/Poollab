@@ -1,11 +1,17 @@
-"""Tests for sanitation selection helpers in config flow."""
+"""Tests for sanitation/update selection helpers in config flow."""
 
 import importlib
 import sys
 import types
 from unittest.mock import MagicMock
 
-from poollab.const import CONF_OPTION_DEVICES, CONF_SANITATION_MODE
+from poollab.const import (
+    CONF_OPTION_DEVICES,
+    CONF_SANITATION_MODE,
+    CONF_UPDATE_MODE,
+    UPDATE_MODE_MANUAL,
+    UPDATE_MODE_POLLING,
+)
 
 
 def _load_config_flow_class():
@@ -90,7 +96,7 @@ def test_build_device_descriptors_handles_id_collisions_and_labels():
 
 
 def test_begin_sanitation_selection_prefills_existing_modes_for_matching_devices():
-    """Only modes for currently discovered devices should be prefilled."""
+    """Only options for currently discovered devices should be prefilled."""
     PoollabConfigFlow = _load_config_flow_class()
     flow = PoollabConfigFlow()
     devices = [
@@ -99,7 +105,10 @@ def test_begin_sanitation_selection_prefills_existing_modes_for_matching_devices
     ]
     existing_options = {
         CONF_OPTION_DEVICES: {
-            "Pool A": {CONF_SANITATION_MODE: "chlorine"},
+            "Pool A": {
+                CONF_SANITATION_MODE: "chlorine",
+                CONF_UPDATE_MODE: UPDATE_MODE_MANUAL,
+            },
             "old-device": {CONF_SANITATION_MODE: "bromine_active_oxygen"},
         }
     }
@@ -115,16 +124,24 @@ def test_begin_sanitation_selection_prefills_existing_modes_for_matching_devices
     assert flow._target_entry_id == "entry123"
     assert len(flow._pending_devices) == 2
     assert flow._selected_sanitation_modes == {"Pool A": "chlorine"}
+    assert flow._selected_update_modes == {
+        "Pool A": UPDATE_MODE_MANUAL,
+        "Pool B": UPDATE_MODE_POLLING,
+    }
 
 
 def test_finish_sanitation_selection_creates_entry_with_options_map():
-    """Initial setup should write sanitation modes into entry options."""
+    """Initial setup should write sanitation and update modes into entry options."""
     PoollabConfigFlow = _load_config_flow_class()
     flow = PoollabConfigFlow()
     flow._pending_token = "abc"
     flow._selected_sanitation_modes = {
         "Pool A": "chlorine",
         "S-B": "bromine_active_oxygen",
+    }
+    flow._selected_update_modes = {
+        "Pool A": UPDATE_MODE_POLLING,
+        "S-B": UPDATE_MODE_MANUAL,
     }
 
     captured = {}
@@ -139,19 +156,22 @@ def test_finish_sanitation_selection_creates_entry_with_options_map():
 
     assert result["data"]
     assert result["options"][CONF_OPTION_DEVICES]["Pool A"][CONF_SANITATION_MODE] == "chlorine"
+    assert result["options"][CONF_OPTION_DEVICES]["Pool A"][CONF_UPDATE_MODE] == UPDATE_MODE_POLLING
     assert (
         result["options"][CONF_OPTION_DEVICES]["S-B"][CONF_SANITATION_MODE]
         == "bromine_active_oxygen"
     )
+    assert result["options"][CONF_OPTION_DEVICES]["S-B"][CONF_UPDATE_MODE] == UPDATE_MODE_MANUAL
 
 
 def test_finish_sanitation_selection_updates_reconfigure_options():
-    """Reconfigure should merge options and replace per-device sanitation map."""
+    """Reconfigure should merge options and replace per-device option map."""
     PoollabConfigFlow = _load_config_flow_class()
     flow = PoollabConfigFlow()
     flow._pending_token = "new-token"
     flow._target_entry_id = "entry123"
     flow._selected_sanitation_modes = {"Pool A": "chlorine"}
+    flow._selected_update_modes = {"Pool A": UPDATE_MODE_MANUAL}
 
     reconfigure_entry = MagicMock()
     reconfigure_entry.options = {"foo": "bar", CONF_OPTION_DEVICES: {"old": {}}}
@@ -181,5 +201,35 @@ def test_finish_sanitation_selection_updates_reconfigure_options():
     assert update_entry_calls["entry"] == reconfigure_entry
     assert update_entry_calls["options"]["foo"] == "bar"
     assert update_entry_calls["options"][CONF_OPTION_DEVICES] == {
-        "Pool A": {CONF_SANITATION_MODE: "chlorine"}
+        "Pool A": {
+            CONF_SANITATION_MODE: "chlorine",
+            CONF_UPDATE_MODE: UPDATE_MODE_MANUAL,
+        }
     }
+
+
+def test_async_step_sanitation_finishes_when_selection_index_is_already_complete():
+    """A repeated sanitation submit should finish instead of indexing past devices."""
+    PoollabConfigFlow = _load_config_flow_class()
+    flow = PoollabConfigFlow()
+    flow._pending_token = "abc"
+    flow._pending_devices = [{"id": "Pool A", "label": "Pool A"}]
+    flow._selected_sanitation_modes = {"Pool A": "chlorine"}
+    flow._selected_update_modes = {"Pool A": UPDATE_MODE_POLLING}
+    flow._device_selection_index = 1
+
+    def _finish_selection():
+        return {"type": "create_entry"}
+
+    flow._finish_sanitation_selection = _finish_selection
+
+    result = __import__("asyncio").run(
+        flow.async_step_sanitation(
+            {
+                CONF_SANITATION_MODE: "chlorine",
+                CONF_UPDATE_MODE: UPDATE_MODE_POLLING,
+            }
+        )
+    )
+
+    assert result == {"type": "create_entry"}

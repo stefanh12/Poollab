@@ -4,6 +4,8 @@
 
 The Poollab integration supports active oxygen monitoring for systems that sanitize with active oxygen products (commonly based on MPS). This document explains how to interpret active oxygen values in Home Assistant.
 
+If your device uses **Backend Update Mode** = **Manual refresh (12h safety sync)**, refresh data before interpreting active oxygen residuals. Use the refresh button entity or an automation with `button.press`.
+
 ## Active Oxygen Sensor
 
 ### Active Oxygen 🫧
@@ -13,6 +15,7 @@ The Poollab integration supports active oxygen monitoring for systems that sanit
 **Sensor**: `sensor.pool_name_active_oxygen`
 
 **API field compatibility**: The integration accepts multiple LabCom names:
+
 - `PL Active Oxygen`
 - `PL Active Oxygen (MPS)`
 - `PL Active Oxygen MPS`
@@ -33,16 +36,19 @@ Always follow your chemical manufacturer instructions and local pool guidance as
 ## What the Numbers Tell You
 
 **Scenario 1: In target range** ✅
+
 - Active Oxygen: 5.0 ppm
 
 **Analysis**: Typical value for many active oxygen treatment programs.
 
 **Scenario 2: Low residual** ⚠️
+
 - Active Oxygen: 2.5 ppm
 
 **Analysis**: Oxidation/sanitizing support may be weak. Consider product-specific re-dosing guidance.
 
 **Scenario 3: High residual** ⚠️
+
 - Active Oxygen: 12.0 ppm
 
 **Analysis**: Value may be above your operational target. Re-check dose timing and product instructions.
@@ -85,7 +91,7 @@ action:
 
 ### Automation: High Active Oxygen Alert
 
-```yaml
+````yaml
 alias: "Pool: High Active Oxygen Alert"
 description: Alert when active oxygen residual is above your comfort threshold
 trigger:
@@ -104,6 +110,20 @@ action:
       data:
         priority: high
         icon: mdi:water-alert
+
+### Automation: Refresh Before Active Oxygen Alerting
+
+```yaml
+alias: "Pool: Refresh Active Oxygen Data"
+trigger:
+  - platform: time_pattern
+    hours: "/12"
+action:
+  - service: button.press
+    target:
+      entity_id: button.backyard_pool_refresh_data
+````
+
 ```
 
 ## Troubleshooting
@@ -124,3 +144,4 @@ The integration already supports both English and German labels plus MPS variant
 - [README.md](README.md)
 - [CHLORINE_CHEMISTRY.md](CHLORINE_CHEMISTRY.md)
 - [BROMINE_CHEMISTRY.md](BROMINE_CHEMISTRY.md)
+```

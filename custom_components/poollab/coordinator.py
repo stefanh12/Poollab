@@ -14,6 +14,7 @@ from homeassistant.helpers.update_coordinator import (
 from .api import PoollabApiClient
 from .const import (
     DOMAIN,
+    MANUAL_FALLBACK_INTERVAL,
     SCAN_INTERVAL,
     SENSOR_CONFIGS,
     SENSOR_TYPE_ACTIVE_OXYGEN,
@@ -25,6 +26,8 @@ from .const import (
     SENSOR_TYPE_SALT,
     SENSOR_TYPE_TEMP,
     SENSOR_TYPE_TOTAL_CL,
+    UPDATE_MODE_MANUAL,
+    UPDATE_MODE_POLLING,
     is_measurement_value_in_range,
 )
 from .time_utils import measurement_timestamp_sort_key
@@ -49,6 +52,13 @@ MEASUREMENT_SENSOR_TYPES = {
     "PL Cyanuric Acid": SENSOR_TYPE_CYA,
     "PL Salt": SENSOR_TYPE_SALT,
 }
+
+
+def _get_update_interval_seconds(update_mode: str) -> int:
+    """Return refresh interval based on configured update mode."""
+    if update_mode == UPDATE_MODE_MANUAL:
+        return MANUAL_FALLBACK_INTERVAL
+    return SCAN_INTERVAL
 
 
 def _timestamp_sort_key(measurement: dict) -> float:
@@ -87,10 +97,12 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
         hass: HomeAssistant,
         api_client: PoollabApiClient,
         device_id: str,
+        update_mode: str = UPDATE_MODE_POLLING,
     ):
         """Initialize the data update coordinator."""
         self.api_client = api_client
         self.device_id = device_id
+        self.update_mode = update_mode
         self.data = {}
         self._last_api_errors: dict[str, Optional[dict]] = {
             "measurements": None,
@@ -98,11 +110,13 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
             "update": None,
         }
 
+        interval_seconds = _get_update_interval_seconds(update_mode)
+
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(seconds=SCAN_INTERVAL),
+            update_interval=timedelta(seconds=interval_seconds),
         )
 
     @property

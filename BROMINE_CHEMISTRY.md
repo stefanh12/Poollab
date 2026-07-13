@@ -4,6 +4,8 @@
 
 The Poollab integration supports bromine monitoring for pools and spas that use bromine-based sanitation instead of chlorine. This document explains how to interpret bromine values in Home Assistant.
 
+If the device is configured with **Backend Update Mode** = **Manual refresh (12h safety sync)**, refresh data before making bromine decisions. Use the refresh button entity or automation with `button.press`.
+
 ## Bromine Sensor
 
 ### Bromine 🟤
@@ -29,16 +31,19 @@ Always follow your chemical manufacturer instructions and local pool guidance as
 ## What the Numbers Tell You
 
 **Scenario 1: In target range** ✅
+
 - Bromine: 3.2 ppm
 
 **Analysis**: Typical healthy residual for many bromine systems.
 
 **Scenario 2: Low residual** ⚠️
+
 - Bromine: 1.1 ppm
 
 **Analysis**: Sanitizer reserve may be too low. Consider dosing according to your treatment plan.
 
 **Scenario 3: High residual** ⚠️
+
 - Bromine: 8.0 ppm
 
 **Analysis**: Residual may be above your preferred comfort target. Let it decay or adjust treatment according to your product guidance.
@@ -81,7 +86,7 @@ action:
 
 ### Automation: High Bromine Alert
 
-```yaml
+````yaml
 alias: "Pool: High Bromine Alert"
 description: Alert when bromine residual is above your comfort threshold
 trigger:
@@ -100,6 +105,20 @@ action:
       data:
         priority: high
         icon: mdi:water-alert
+
+### Automation: Scheduled Refresh for Manual refresh (12h safety sync)
+
+```yaml
+alias: "Pool: Refresh Bromine Data"
+trigger:
+  - platform: time_pattern
+    hours: "/12"
+action:
+  - service: button.press
+    target:
+      entity_id: button.backyard_pool_refresh_data
+````
+
 ```
 
 ## Troubleshooting
@@ -122,3 +141,4 @@ Possible causes:
 - [README.md](README.md)
 - [CHLORINE_CHEMISTRY.md](CHLORINE_CHEMISTRY.md)
 - [ACTIVE_OXYGEN_CHEMISTRY.md](ACTIVE_OXYGEN_CHEMISTRY.md)
+```

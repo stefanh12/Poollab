@@ -8,6 +8,8 @@ The Poollab integration provides detailed chlorine measurements to help you main
 
 These sensors are only exposed for devices configured with the **Chlorine** sanitation method. Devices configured for **Bromine + Active Oxygen** do not expose chlorine-family sensors or Stabilizer (CYA).
 
+If your device uses **Backend Update Mode** = **Manual refresh (12h safety sync)**, remember to refresh data before evaluating chlorine values. You can press the refresh button entity or trigger it in automations with `button.press`.
+
 ## Chlorine Sensor Types
 
 ### 1. Free Chlorine (Active Chlorine) 🟢
@@ -131,7 +133,7 @@ entities:
 
 ### Automation: Alert When Shocking Needed
 
-```yaml
+````yaml
 alias: "Pool: Shock Needed (High Combined Chlorine)"
 description: Alert when combined chlorine is too high
 trigger:
@@ -150,7 +152,32 @@ action:
       data:
         priority: high
         icon: mdi:water-alert
-```
+
+### Automation: Refresh Then Evaluate Chlorine
+
+```yaml
+alias: "Pool: Refresh Then Chlorine Check"
+trigger:
+  - platform: time_pattern
+    hours: "/12"
+action:
+  - service: button.press
+    target:
+      entity_id: button.backyard_pool_refresh_data
+  - delay: "00:00:05"
+  - choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.backyard_pool_free_chlorine
+            below: 1.0
+        sequence:
+          - service: notify.mobile_app
+            data:
+              title: "Pool Chlorine Low"
+              message: "Free chlorine is below 1.0 ppm after refresh."
+````
+
+````
 
 ### Automation: Low Active Chlorine Alert
 
@@ -175,7 +202,7 @@ action:
       data:
         priority: high
         icon: mdi:water-check
-```
+````
 
 ### Template Sensor: Chlorine Health Status
 

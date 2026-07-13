@@ -13,7 +13,9 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
 - ⚗️ Alkalinity tracking
 - 🛡️ Stabilizer (CYA) monitoring in chlorine mode
 - 🧂 Salt level monitoring
-- 🔄 Automatic updates every 5 minutes
+- 🔄 Per-device Backend Update Mode: Cloud polling or Manual refresh (12h safety sync)
+- ⏱️ Manual refresh (12h safety sync) includes a 12-hour safety refresh while Home Assistant is running
+- 🔘 Native refresh button entity in Manual refresh (12h safety sync) mode (works in dashboards and automations)
 - ✅ Data validation — out-of-range values are discarded automatically
 
 ## Chemistry Guides
@@ -53,7 +55,12 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
    - Generate a token and copy the token string
 5. Paste your **personal token** into the Home Assistant config
 6. The integration will automatically discover **all your devices/pools**
-7. Configuration complete!
+7. For each discovered device, choose:
+   - **Sanitation method** (Chlorine or Bromine + Active Oxygen)
+   - **Backend Update Mode**
+     - **Cloud polling**: regular backend updates (default, every 5 minutes)
+     - **Manual refresh (12h safety sync)**: adds a refresh button and still performs a safety refresh every 12 hours
+8. Configuration complete!
 
 ⚠️ **Important**: Each account has a **unique personal token**. Never share it!
 
@@ -76,6 +83,11 @@ During setup, each device is assigned a sanitation method:
 - **Chlorine**: exposes chlorine sensors, Stabilizer (CYA), and chlorine chemistry calculations
 - **Bromine + Active Oxygen**: exposes bromine and active oxygen sensors instead of chlorine-family sensors and CYA
 
+Each device also gets a **Backend Update Mode**:
+
+- **Cloud polling**: backend is polled automatically every 5 minutes
+- **Manual refresh (12h safety sync)**: use a button entity to fetch data on demand, with an automatic safety refresh every 12 hours while Home Assistant is running
+
 ### Water Quality Measurements
 
 | Sensor                    | Description                                                       | Unit     | Valid Range |
@@ -96,19 +108,73 @@ During setup, each device is assigned a sanitation method:
 
 ### Diagnostic Sensors
 
-| Sensor                | Description                                        |
-| --------------------- | -------------------------------------------------- |
-| **Measurement Count** | Total number of measurements stored for the device |
+| Sensor                        | Description                                                          |
+| ----------------------------- | -------------------------------------------------------------------- |
+| **Measurement Count**         | Total number of measurements stored for the device                   |
 | **Invalid Measurement Count** | Total number of overrange/invalid measurements stored for the device |
-| **Last Measurement**  | Timestamp of the most recent measurement           |
+| **Last Measurement**          | Timestamp of the most recent measurement                             |
+
+### Button Entity (Manual Update Mode)
+
+When a device is configured with **Manual refresh (12h safety sync)**, the integration creates:
+
+- **Refresh Data** button (one per device)
+
+Pressing this button triggers an immediate backend fetch for that device.
+
+## Manual Refresh and Automations
+
+Manual refresh (12h safety sync) is designed for users who measure infrequently (for example once or twice per week):
+
+- Data can be refreshed on demand with the button entity
+- A 12-hour fallback refresh still runs so data does not stay stale indefinitely
+- The button can be triggered from automations using `button.press`
+
+### Automation Example: Trigger Manual Refresh Daily
+
+```yaml
+alias: "Pool: Daily Manual Refresh"
+trigger:
+   - platform: time
+      at: "08:00:00"
+action:
+   - service: button.press
+      target:
+         entity_id: button.backyard_pool_refresh_data
+```
+
+### Automation Example: Refresh Before Checking Water Quality
+
+```yaml
+alias: "Pool: Refresh Before Chemistry Check"
+trigger:
+   - platform: state
+      entity_id: input_boolean.run_pool_check
+      to: "on"
+action:
+   - service: button.press
+      target:
+         entity_id: button.backyard_pool_refresh_data
+   - delay: "00:00:05"
+   - service: notify.mobile_app
+      data:
+         title: "Pool Data Refreshed"
+         message: "Latest Poollab backend values have been fetched."
+```
+
+## Service
+
+The integration also provides a service that refreshes all configured devices in the entry:
+
+- `poollab.refresh_data`
 
 ### Sanitizer Comparison (Quick Reference)
 
-| Sanitizer | Sensor | Integration Behavior | Typical Practical Target* | Documented Valid Range |
-|-----------|--------|----------------------|---------------------------|------------------------|
-| Chlorine | `sensor.pool_name_free_chlorine` (plus total/combined/unbound/bound variants) | Mix of direct values + calculated metrics (combined/unbound/bound) | Free chlorine: 1-3 ppm; Combined chlorine: < 0.5 ppm | 0-10 ppm (free/total), 0-5 ppm (combined), 0-10 ppm (unbound/bound) |
-| Bromine | `sensor.pool_name_bromine` | Direct LabCom measurement (`PL Bromine`) | Often 2-5 ppm | 0-13.5 ppm |
-| Active Oxygen | `sensor.pool_name_active_oxygen` | Direct LabCom measurement with multiple aliases (MPS and localized names) | Often 4-8 ppm | 0-30 ppm |
+| Sanitizer     | Sensor                                                                        | Integration Behavior                                                      | Typical Practical Target\*                           | Documented Valid Range                                              |
+| ------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------- |
+| Chlorine      | `sensor.pool_name_free_chlorine` (plus total/combined/unbound/bound variants) | Mix of direct values + calculated metrics (combined/unbound/bound)        | Free chlorine: 1-3 ppm; Combined chlorine: < 0.5 ppm | 0-10 ppm (free/total), 0-5 ppm (combined), 0-10 ppm (unbound/bound) |
+| Bromine       | `sensor.pool_name_bromine`                                                    | Direct LabCom measurement (`PL Bromine`)                                  | Often 2-5 ppm                                        | 0-13.5 ppm                                                          |
+| Active Oxygen | `sensor.pool_name_active_oxygen`                                              | Direct LabCom measurement with multiple aliases (MPS and localized names) | Often 4-8 ppm                                        | 0-30 ppm                                                            |
 
 \* Practical targets depend on product instructions, local regulations, pool/spa type, and water conditions.
 
@@ -171,6 +237,12 @@ This integration requires:
 - Check Home Assistant logs for error messages
 - If a specific sensor is unavailable, verify the measurement is synced to the Poollab backend
 - A value that is out of the valid range listed above will also cause the sensor to report unavailable (a warning will appear in the logs)
+
+### Manual Refresh (12h Safety Sync) appears stale
+
+- In Manual refresh (12h safety sync) mode, updates happen when you press the refresh button or trigger `button.press`
+- A safety refresh still runs every 12 hours while Home Assistant is running
+- If you need fresher values, run refresh from a dashboard button or automation
 
 ## Support
 
