@@ -142,6 +142,17 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
         """Clear a stored API error when call path succeeds again."""
         self._last_api_errors[error_key] = None
 
+    def _get_retained_data_if_available(self) -> Optional[dict]:
+        """Return the last successful dataset when current fetch has no usable measurements."""
+        if not isinstance(self.data, dict):
+            return None
+
+        latest_values = self.data.get("latest_values")
+        if isinstance(latest_values, dict) and latest_values:
+            return self.data
+
+        return None
+
     async def _async_update_data(self) -> dict:
         """Fetch data from Poollab API."""
         try:
@@ -173,6 +184,13 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
 
             if not measurements:
                 _LOGGER.warning("No measurements available from Poollab API for device %s", self.device_id)
+                retained_data = self._get_retained_data_if_available()
+                if retained_data is not None:
+                    _LOGGER.info(
+                        "Keeping last known dataset for device %s because the API returned no measurements",
+                        self.device_id,
+                    )
+                    return retained_data
                 # Don't fail, just return empty data so coordinator doesn't error
                 return {
                     "device_id": self.device_id,
@@ -202,6 +220,13 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
 
             if not device_measurements:
                 _LOGGER.warning(f"No measurements found for device {self.device_id}")
+                retained_data = self._get_retained_data_if_available()
+                if retained_data is not None:
+                    _LOGGER.info(
+                        "Keeping last known dataset for device %s because no matching device measurements were returned",
+                        self.device_id,
+                    )
+                    return retained_data
                 device_measurements = []
 
             # Extract latest values for each parameter
