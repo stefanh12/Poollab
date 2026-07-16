@@ -41,21 +41,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         session,
     )
 
-    # Verify token is valid
-    _LOGGER.debug("Verifying Poollab API token")
-    try:
-        if not await asyncio.wait_for(api_client.verify_token(), timeout=30.0):
-            _LOGGER.error("Invalid Poollab API token")
-            return False
-    except asyncio.TimeoutError:
-        _LOGGER.error("Timeout verifying Poollab API token")
-        return False
-    except Exception as err:
-        _LOGGER.error("Error verifying API token: %s", err, exc_info=True)
-        return False
-
-    _LOGGER.info("Poollab API token verified successfully")
-
     # Get all devices/accounts (pools)
     _LOGGER.debug("Fetching devices from Poollab API")
     try:
@@ -72,6 +57,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
 
     _LOGGER.info("Found %d device(s) in Poollab account", len(devices))
+
+    prefetched_measurements = None
+    try:
+        prefetched_measurements = await asyncio.wait_for(
+            api_client.get_measurements(),
+            timeout=10.0,
+        )
+    except asyncio.TimeoutError:
+        _LOGGER.debug("Timeout prefetching measurements; continuing without prefetch")
+    except Exception as err:
+        _LOGGER.debug("Failed to prefetch measurements: %s", err)
 
     configured_devices = entry.options.get(CONF_OPTION_DEVICES, {})
 
@@ -120,6 +116,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             api_client,
             device_id,
             update_mode,
+            prefetched_measurements,
         )
 
         # Initial data fetch with timeout

@@ -98,12 +98,16 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
         api_client: PoollabApiClient,
         device_id: str,
         update_mode: str = UPDATE_MODE_POLLING,
+        prefetched_measurements: Optional[list[dict]] = None,
     ):
         """Initialize the data update coordinator."""
         self.api_client = api_client
         self.device_id = device_id
         self.update_mode = update_mode
         self.data = {}
+        self._prefetched_measurements = (
+            list(prefetched_measurements) if prefetched_measurements is not None else None
+        )
         self._last_api_errors: dict[str, Optional[dict]] = {
             "measurements": None,
             "active_chlorine": None,
@@ -159,10 +163,18 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Starting data update for device: %s", self.device_id)
 
             try:
-                measurements = await asyncio.wait_for(
-                    self.api_client.get_measurements(),
-                    timeout=30.0
-                )
+                if self._prefetched_measurements is not None:
+                    measurements = self._prefetched_measurements
+                    self._prefetched_measurements = None
+                    _LOGGER.debug(
+                        "Using prefetched measurements for initial update on device %s",
+                        self.device_id,
+                    )
+                else:
+                    measurements = await asyncio.wait_for(
+                        self.api_client.get_measurements(),
+                        timeout=30.0
+                    )
                 self._clear_api_error("measurements")
             except asyncio.TimeoutError:
                 _LOGGER.error("Timeout fetching measurements for device %s", self.device_id)
