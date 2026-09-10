@@ -61,24 +61,42 @@ MEASUREMENT_SENSOR_TYPES = {
 # so map those short parameter names to the canonical "PL ..." names used above.
 MANUAL_PARAMETER_ALIASES = {
     "ph": "PL pH",
+    "pl ph": "PL pH",
     "chlorine free": "PL Chlorine Free",
+    "pl chlorine free": "PL Chlorine Free",
     "free chlorine": "PL Chlorine Free",
     "total chlorine": "PL Total Chlorine",
-    "chlorine total": "PL Chlorine Total",
+    "pl total chlorine": "PL Total Chlorine",
+    "chlorine total": "PL Total Chlorine",
+    "pl chlorine total": "PL Total Chlorine",
     "bromine": "PL Bromine",
+    "pl bromine": "PL Bromine",
     "active oxygen": "PL Active Oxygen",
-    "active oxygen (mps)": "PL Active Oxygen (MPS)",
-    "active oxygen mps": "PL Active Oxygen MPS",
-    "mps": "PL MPS",
-    "aktivsauerstoff": "PL Aktivsauerstoff",
-    "aktivsauerstoff (mps)": "PL Aktivsauerstoff (MPS)",
+    "pl active oxygen": "PL Active Oxygen",
+    "active oxygen (mps)": "PL Active Oxygen",
+    "pl active oxygen (mps)": "PL Active Oxygen",
+    "active oxygen mps": "PL Active Oxygen",
+    "pl active oxygen mps": "PL Active Oxygen",
+    "mps": "PL Active Oxygen",
+    "pl mps": "PL Active Oxygen",
+    "aktivsauerstoff": "PL Active Oxygen",
+    "pl aktivsauerstoff": "PL Active Oxygen",
+    "aktivsauerstoff (mps)": "PL Active Oxygen",
+    "pl aktivsauerstoff (mps)": "PL Active Oxygen",
     "temperature": "PL Temperature",
+    "pl temperature": "PL Temperature",
     "t-alka": "PL T-Alka",
+    "pl t-alka": "PL T-Alka",
     "alkalinity": "PL Alkalinity",
+    "pl alkalinity": "PL T-Alka",
     "cyanuric acid": "PL Cyanuric Acid",
+    "pl cyanuric acid": "PL Cyanuric Acid",
     "salt": "PL Salt",
+    "pl salt": "PL Salt",
     "calcium hardness": "PL Calcium Hardness",
+    "pl calcium hardness": "PL Calcium Hardness",
     "total hardness": "PL Total Hardness",
+    "pl total hardness": "PL Total Hardness",
 }
 
 
@@ -90,8 +108,6 @@ def _canonicalize_parameter_name(parameter: Optional[str]) -> str:
     they would otherwise be ignored by the sensors.
     """
     if not parameter:
-        return parameter
-    if parameter.strip().upper().startswith("PL "):
         return parameter
     alias = MANUAL_PARAMETER_ALIASES.get(parameter.strip().lower())
     return alias if alias else parameter
