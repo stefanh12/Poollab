@@ -8,10 +8,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .coordinator import (
-    PoollabDataUpdateCoordinator,
-    _canonicalize_parameter_name,
-)
 from .const import (
     CONF_OPTION_DEVICES,
     CONF_SANITATION_MODE,
@@ -38,6 +34,10 @@ from .const import (
     SENSOR_TYPE_UNBOUND_CL,
     get_sensor_types_for_sanitation,
     is_measurement_value_in_range,
+)
+from .coordinator import (
+    PoollabDataUpdateCoordinator,
+    _canonicalize_parameter_name,
 )
 from .time_utils import parse_measurement_timestamp
 
@@ -374,17 +374,24 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
         ]:
             missing_parameters = []
 
-            if self.sensor_type in [SENSOR_TYPE_CL, SENSOR_TYPE_FREE_CL, SENSOR_TYPE_UNBOUND_CL, SENSOR_TYPE_BOUND_CYA]:
-                if not self._measurement_for_parameter(latest_values, "PL Chlorine Free"):
-                    missing_parameters.append("PL Chlorine Free")
+            if (
+                self.sensor_type
+                in [SENSOR_TYPE_CL, SENSOR_TYPE_FREE_CL, SENSOR_TYPE_UNBOUND_CL, SENSOR_TYPE_BOUND_CYA]
+                and not self._measurement_for_parameter(latest_values, "PL Chlorine Free")
+            ):
+                missing_parameters.append("PL Chlorine Free")
 
-            if self.sensor_type in [SENSOR_TYPE_TOTAL_CL, SENSOR_TYPE_COMBINED_CL]:
-                if not self._measurement_for_parameter(latest_values, "PL Total Chlorine"):
-                    missing_parameters.append("PL Total Chlorine/PL Chlorine Total")
+            if (
+                self.sensor_type in [SENSOR_TYPE_TOTAL_CL, SENSOR_TYPE_COMBINED_CL]
+                and not self._measurement_for_parameter(latest_values, "PL Total Chlorine")
+            ):
+                missing_parameters.append("PL Total Chlorine/PL Chlorine Total")
 
-            if self.sensor_type in [SENSOR_TYPE_UNBOUND_CL, SENSOR_TYPE_BOUND_CYA]:
-                if not self._measurement_for_parameter(latest_values, "PL pH"):
-                    missing_parameters.append("PL pH")
+            if (
+                self.sensor_type in [SENSOR_TYPE_UNBOUND_CL, SENSOR_TYPE_BOUND_CYA]
+                and not self._measurement_for_parameter(latest_values, "PL pH")
+            ):
+                missing_parameters.append("PL pH")
 
             if missing_parameters:
                 attributes["missing_parameters"] = missing_parameters

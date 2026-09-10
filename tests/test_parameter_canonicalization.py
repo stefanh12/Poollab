@@ -1,7 +1,6 @@
 """Tests for locale-independent measurement parameter canonicalization."""
 
 import pytest
-
 from poollab.coordinator import _canonicalize_parameter_name
 
 
