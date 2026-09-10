@@ -53,6 +53,43 @@ MEASUREMENT_SENSOR_TYPES = {
     "PL Salt": SENSOR_TYPE_SALT,
 }
 
+# Measurements added manually via labcom.cloud omit the "PL " device prefix,
+# so map those short parameter names to the canonical "PL ..." names used above.
+MANUAL_PARAMETER_ALIASES = {
+    "ph": "PL pH",
+    "chlorine free": "PL Chlorine Free",
+    "free chlorine": "PL Chlorine Free",
+    "total chlorine": "PL Total Chlorine",
+    "chlorine total": "PL Chlorine Total",
+    "bromine": "PL Bromine",
+    "active oxygen": "PL Active Oxygen",
+    "active oxygen (mps)": "PL Active Oxygen (MPS)",
+    "active oxygen mps": "PL Active Oxygen MPS",
+    "mps": "PL MPS",
+    "aktivsauerstoff": "PL Aktivsauerstoff",
+    "aktivsauerstoff (mps)": "PL Aktivsauerstoff (MPS)",
+    "temperature": "PL Temperature",
+    "t-alka": "PL T-Alka",
+    "alkalinity": "PL Alkalinity",
+    "cyanuric acid": "PL Cyanuric Acid",
+    "salt": "PL Salt",
+}
+
+
+def _canonicalize_parameter_name(parameter: Optional[str]) -> str:
+    """Map a raw measurement parameter name to its canonical "PL ..." form.
+
+    Manual entries created directly in labcom.cloud are stored without the
+    "PL " device prefix (e.g. "Temperature" instead of "PL Temperature"), so
+    they would otherwise be ignored by the sensors.
+    """
+    if not parameter:
+        return parameter
+    if parameter.strip().upper().startswith("PL "):
+        return parameter
+    alias = MANUAL_PARAMETER_ALIASES.get(parameter.strip().lower())
+    return alias if alias else parameter
+
 
 def _get_update_interval_seconds(update_mode: str) -> int:
     """Return refresh interval based on configured update mode."""
@@ -68,7 +105,8 @@ def _timestamp_sort_key(measurement: dict) -> float:
 
 def _is_invalid_measurement(measurement: dict) -> bool:
     """Return True if a measurement has an invalid or overrange value."""
-    sensor_type = MEASUREMENT_SENSOR_TYPES.get(measurement.get("parameter"))
+    parameter = _canonicalize_parameter_name(measurement.get("parameter"))
+    sensor_type = MEASUREMENT_SENSOR_TYPES.get(parameter)
     if sensor_type is None:
         return False
 
@@ -245,7 +283,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
             # Group measurements by parameter, then take the last one (most recent)
             params_by_param = {}
             for measurement in device_measurements:
-                param = measurement.get("parameter", "unknown")
+                param = _canonicalize_parameter_name(measurement.get("parameter", "unknown"))
                 if param not in params_by_param:
                     params_by_param[param] = []
                 params_by_param[param].append(measurement)
