@@ -1,6 +1,6 @@
 """Diagnostics for Poollab integration."""
 
-from typing import Any, Dict
+from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
@@ -13,7 +13,7 @@ TO_REDACT = {"email", "password", "token"}
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
 
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})

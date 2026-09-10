@@ -1,0 +1,4 @@
+# Test suite runs on Python 3.9, so keep typing.Optional/Dict/List instead of
+# PEP 604 "X | None" unions, which pyupgrade (UP006/UP007/UP035/UP045) would
+# otherwise rewrite and break at runtime on 3.9.
+lint.ignore = ["UP006", "UP007", "UP035", "UP045"]
