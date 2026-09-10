@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from typing import Final
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_TOKEN, Platform
 from homeassistant.core import HomeAssistant
@@ -10,7 +11,6 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import PoollabApiClient
-from .coordinator import PoollabDataUpdateCoordinator
 from .const import (
     CONF_OPTION_DEVICES,
     CONF_SANITATION_MODE,
@@ -19,6 +19,7 @@ from .const import (
     SANITATION_MODE_CHLORINE,
     UPDATE_MODE_POLLING,
 )
+from .coordinator import PoollabDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,8 +49,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except asyncio.TimeoutError:
         _LOGGER.error("Timeout fetching devices from Poollab API")
         return False
-    except Exception as err:
-        _LOGGER.error("Error fetching devices: %s", err, exc_info=True)
+    except Exception:
+        _LOGGER.exception("Error fetching devices")
         return False
 
     if not devices:
@@ -66,7 +67,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     except asyncio.TimeoutError:
         _LOGGER.debug("Timeout prefetching measurements; continuing without prefetch")
-    except Exception as err:
+    except Exception as err:  # noqa: BLE001 - prefetch is optional, any failure should not block setup
         _LOGGER.debug("Failed to prefetch measurements: %s", err)
 
     configured_devices = entry.options.get(CONF_OPTION_DEVICES, {})
@@ -130,7 +131,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "Timeout during initial refresh for device %s, continuing anyway",
                 device_id
             )
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001 - initial refresh failures should not block setup
             _LOGGER.warning(
                 "Error during initial refresh for device %s: %s, continuing anyway",
                 device_id,

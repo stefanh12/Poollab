@@ -1,8 +1,8 @@
 """Data update coordinator for Poollab integration."""
 
 import asyncio
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from homeassistant.core import HomeAssistant
@@ -176,7 +176,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
         self._last_api_errors[error_key] = {
             "message": message,
             "type": error_type,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "device_id": self.device_id,
         }
 
@@ -409,7 +409,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                                 "Timeout while calculating ActiveChlorine",
                                 "timeout",
                             )
-                        except Exception as e:
+                        except Exception as e:  # noqa: BLE001 - ActiveChlorine calc is optional, must not fail the update
                             _LOGGER.warning(
                                 "Error calculating ActiveChlorine for device %s: %s, continuing without it",
                                 self.device_id,
@@ -427,7 +427,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
                         "present" if ph_data else "missing",
                         "present" if chlorine_data else "missing",
                     )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - ActiveChlorine calc is optional, must not fail the update
                 _LOGGER.warning(
                     "Unexpected error preparing ActiveChlorine for device %s: %s",
                     self.device_id,
@@ -465,7 +465,7 @@ class PoollabDataUpdateCoordinator(DataUpdateCoordinator):
         except UpdateFailed:
             raise
         except Exception as err:
-            _LOGGER.error("Error updating data for device %s: %s", self.device_id, err, exc_info=True)
+            _LOGGER.exception("Error updating data for device %s", self.device_id)
             self._set_api_error(
                 "update",
                 str(err),

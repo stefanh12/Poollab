@@ -230,6 +230,4 @@ def is_measurement_value_in_range(sensor_type: str, value: float) -> bool:
     max_val = config.get("max")
     if min_val is not None and value < min_val:
         return False
-    if max_val is not None and value > max_val:
-        return False
-    return True
+    return not (max_val is not None and value > max_val)

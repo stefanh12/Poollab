@@ -2,13 +2,14 @@
 
 import asyncio
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
+
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_TOKEN
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import selector
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import PoollabApiClient
 from .const import (
@@ -41,10 +42,10 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._target_entry_id: Optional[str] = None
 
     async def async_step_user(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: Optional[dict[str, Any]] = None
     ) -> FlowResult:
         """Handle the initial step."""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # Check if already configured
@@ -72,7 +73,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors["base"] = "invalid_auth"
             except asyncio.TimeoutError:
                 errors["base"] = "cannot_connect"
-            except Exception as err:
+            except Exception as err:  # noqa: BLE001 - config flow must surface a generic error instead of crashing
                 _LOGGER.error("Unexpected error: %s", err)
                 errors["base"] = "unknown"
 
@@ -91,15 +92,15 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_import(self, import_data: Dict[str, Any]) -> FlowResult:
+    async def async_step_import(self, import_data: dict[str, Any]) -> FlowResult:
         """Handle import from configuration.yaml."""
         return await self.async_step_user(import_data)
 
     async def async_step_reconfigure(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: Optional[dict[str, Any]] = None
     ) -> FlowResult:
         """Handle reconfiguration of an existing config entry."""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
         reconfigure_entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
 
         if user_input is not None:
@@ -124,7 +125,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors["base"] = "invalid_auth"
             except asyncio.TimeoutError:
                 errors["base"] = "cannot_connect"
-            except Exception as err:
+            except Exception as err:  # noqa: BLE001 - config flow must surface a generic error instead of crashing
                 _LOGGER.error("Unexpected error during reconfigure: %s", err)
                 errors["base"] = "unknown"
 
@@ -146,7 +147,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_sanitation(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: Optional[dict[str, Any]] = None
     ) -> FlowResult:
         """Collect sanitation mode for each discovered device."""
         if not self._pending_token or not self._pending_devices:
@@ -229,7 +230,7 @@ class PoollabConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         token: str,
         devices: list[dict[str, Any]],
         reconfigure_entry_id: Optional[str] = None,
-        existing_options: Optional[Dict[str, Any]] = None,
+        existing_options: Optional[dict[str, Any]] = None,
     ) -> None:
         """Initialize sanitation selection state and open sanitation step."""
         self._pending_token = token

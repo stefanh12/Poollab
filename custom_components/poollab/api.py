@@ -1,18 +1,19 @@
 """API client for Poollab/Labcom integration."""
 
 import asyncio
+import logging
+from collections import Counter
+from datetime import datetime, timezone
+from typing import Any, Optional
+
 import aiohttp
 import async_timeout
-from collections import Counter
-from typing import Any, Dict, Optional, List
-import logging
-from datetime import datetime
 
 from .const import (
-    API_URL,
     API_TIMEOUT,
-    MIN_TIME_BETWEEN_UPDATES,
+    API_URL,
     MAX_API_RETRIES,
+    MIN_TIME_BETWEEN_UPDATES,
     RATE_LIMIT_RETRY_WAIT,
     RETRY_BACKOFF_MULTIPLIER,
 )
@@ -31,14 +32,14 @@ class PoollabApiClient:
         self._request_lock = asyncio.Lock()
         self._last_request_time: Optional[datetime] = None
         self._max_retries = MAX_API_RETRIES
-        self._measurements_cache: Optional[List[Dict[str, Any]]] = None
+        self._measurements_cache: Optional[list[dict[str, Any]]] = None
         self._cache_time: Optional[datetime] = None
         self._cache_ttl = 30  # Cache measurements for 30 seconds
 
     async def _apply_throttle(self) -> None:
         """Apply API request throttling to prevent rate limiting."""
         if self._last_request_time:
-            elapsed = (datetime.now() - self._last_request_time).total_seconds()
+            elapsed = (datetime.now(timezone.utc) - self._last_request_time).total_seconds()
             if elapsed < MIN_TIME_BETWEEN_UPDATES:
                 wait_time = MIN_TIME_BETWEEN_UPDATES - elapsed
                 _LOGGER.debug("Throttling API request, waiting %.1f seconds", wait_time)
@@ -47,9 +48,9 @@ class PoollabApiClient:
     async def _query(
         self,
         query: str,
-        variables: Optional[Dict] = None,
+        variables: Optional[dict] = None,
         skip_throttle: bool = False,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Execute a GraphQL query with throttling and retry logic."""
         if not self._session:
             return None
@@ -87,7 +88,7 @@ class PoollabApiClient:
                             headers=headers,
                         ) as resp:
                             # Update last request time for throttling
-                            self._last_request_time = datetime.now()
+                            self._last_request_time = datetime.now(timezone.utc)
 
                             if resp.status == 200:
                                 data = await resp.json()
@@ -120,7 +121,7 @@ class PoollabApiClient:
                                 if attempt < self._max_retries - 1:
                                     try:
                                         error_body = await resp.text()
-                                    except Exception:
+                                    except Exception:  # noqa: BLE001 - response body read is best-effort
                                         error_body = "Could not read response"
                                     _LOGGER.warning(
                                         "API request failed (%s), retrying (attempt %d/%d). Response: %s",
@@ -134,7 +135,7 @@ class PoollabApiClient:
                                     continue
                                 try:
                                     error_body = await resp.text()
-                                except Exception:
+                                except Exception:  # noqa: BLE001 - response body read is best-effort
                                     error_body = "Could not read response"
                                 _LOGGER.error("API request failed: %s. Response: %s", resp.status, error_body[:200] if error_body else "No response body")
                                 return None
@@ -152,7 +153,7 @@ class PoollabApiClient:
                         "GraphQL request timeout after %d retries", self._max_retries
                     )
                     return None
-                except Exception as err:
+                except Exception as err:  # noqa: BLE001 - retry loop must survive any transport error
                     if attempt < self._max_retries - 1:
                         _LOGGER.warning(
                             "GraphQL request failed: %s, retrying (attempt %d/%d)",
@@ -175,11 +176,11 @@ class PoollabApiClient:
         result = await self.get_measurements()
         return result is not None and len(result) > 0
 
-    async def get_measurements(self) -> Optional[List[Dict[str, Any]]]:
+    async def get_measurements(self) -> Optional[list[dict[str, Any]]]:
         """Get all measurements from Labcom cloud."""
         # Check cache validity
         if self._measurements_cache is not None and self._cache_time is not None:
-            elapsed = (datetime.now() - self._cache_time).total_seconds()
+            elapsed = (datetime.now(timezone.utc) - self._cache_time).total_seconds()
             if elapsed < self._cache_ttl:
                 _LOGGER.debug(
                     "Using cached measurements (cache age: %.1f seconds)",
@@ -216,7 +217,7 @@ class PoollabApiClient:
 
             # Cache the measurements
             self._measurements_cache = measurements
-            self._cache_time = datetime.now()
+            self._cache_time = datetime.now(timezone.utc)
 
             for idx, measurement in enumerate(measurements):
                 _LOGGER.debug(
@@ -235,7 +236,7 @@ class PoollabApiClient:
 
     async def get_active_chlorine(
         self, temperature: float, ph: float, chlorine: float, cya: float
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Calculate active chlorine values based on water parameters."""
         _LOGGER.debug(
             "Calculating active chlorine with temp=%s, pH=%s, chlorine=%s, cya=%s",
@@ -244,7 +245,7 @@ class PoollabApiClient:
             chlorine,
             cya,
         )
-        query = """
+        query = f"""
         {{
           ActiveChlorine (temperature: {temperature}, pH: {ph}, chlorine: {chlorine}, cya: {cya}) {{
             unbound_chlorine
@@ -258,11 +259,11 @@ class PoollabApiClient:
             h2clcy
           }}
         }}
-        """.format(temperature=temperature, ph=ph, chlorine=chlorine, cya=cya)
+        """
         _LOGGER.debug("ActiveChlorine query: %s", query.strip())
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         result = await self._query(query, skip_throttle=True)
-        duration = (datetime.now() - start_time).total_seconds()
+        duration = (datetime.now(timezone.utc) - start_time).total_seconds()
         _LOGGER.debug("ActiveChlorine API call completed in %.2fs", duration)
         if result and "ActiveChlorine" in result:
             _LOGGER.debug("Active chlorine result: %s", result["ActiveChlorine"])
@@ -273,7 +274,7 @@ class PoollabApiClient:
             _LOGGER.warning("No ActiveChlorine data in API response: %s", result)
         return None
 
-    async def get_devices(self) -> List[Dict[str, Any]]:
+    async def get_devices(self) -> list[dict[str, Any]]:
         """Get list of unique devices from measurements."""
         measurements = await self.get_measurements()
         if not measurements:
@@ -327,4 +328,3 @@ class PoollabApiClient:
 class PoollabApiException(Exception):
     """Exception raised when API request fails."""
 
-    pass
