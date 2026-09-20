@@ -20,12 +20,14 @@ from .const import (
     SENSOR_TYPE_ACTIVE_OXYGEN,
     SENSOR_TYPE_ALK,
     SENSOR_TYPE_BROMINE,
+    SENSOR_TYPE_CALCIUM_HARDNESS,
     SENSOR_TYPE_CYA,
     SENSOR_TYPE_FREE_CL,
     SENSOR_TYPE_PH,
     SENSOR_TYPE_SALT,
     SENSOR_TYPE_TEMP,
     SENSOR_TYPE_TOTAL_CL,
+    SENSOR_TYPE_TOTAL_HARDNESS,
     UPDATE_MODE_MANUAL,
     UPDATE_MODE_POLLING,
     is_measurement_value_in_range,
@@ -51,6 +53,8 @@ MEASUREMENT_SENSOR_TYPES = {
     "PL Alkalinity": SENSOR_TYPE_ALK,
     "PL Cyanuric Acid": SENSOR_TYPE_CYA,
     "PL Salt": SENSOR_TYPE_SALT,
+    "PL Calcium Hardness": SENSOR_TYPE_CALCIUM_HARDNESS,
+    "PL Total Hardness": SENSOR_TYPE_TOTAL_HARDNESS,
 }
 
 # Measurements added manually via labcom.cloud omit the "PL " device prefix,
@@ -73,6 +77,8 @@ MANUAL_PARAMETER_ALIASES = {
     "alkalinity": "PL Alkalinity",
     "cyanuric acid": "PL Cyanuric Acid",
     "salt": "PL Salt",
+    "calcium hardness": "PL Calcium Hardness",
+    "total hardness": "PL Total Hardness",
 }
 
 
