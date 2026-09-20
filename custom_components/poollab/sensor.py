@@ -18,6 +18,7 @@ from .const import (
     SENSOR_TYPE_ALK,
     SENSOR_TYPE_BOUND_CYA,
     SENSOR_TYPE_BROMINE,
+    SENSOR_TYPE_CALCIUM_HARDNESS,
     SENSOR_TYPE_CL,
     SENSOR_TYPE_COMBINED_CL,
     SENSOR_TYPE_CYA,
@@ -29,6 +30,7 @@ from .const import (
     SENSOR_TYPE_SALT,
     SENSOR_TYPE_TEMP,
     SENSOR_TYPE_TOTAL_CL,
+    SENSOR_TYPE_TOTAL_HARDNESS,
     SENSOR_TYPE_UNBOUND_CL,
     get_sensor_types_for_sanitation,
     is_measurement_value_in_range,
@@ -159,6 +161,8 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             SENSOR_TYPE_ALK: ("PL T-Alka", "PL Alkalinity"),
             SENSOR_TYPE_CYA: ("PL Cyanuric Acid",),
             SENSOR_TYPE_SALT: ("PL Salt",),
+            SENSOR_TYPE_CALCIUM_HARDNESS: ("PL Calcium Hardness",),
+            SENSOR_TYPE_TOTAL_HARDNESS: ("PL Total Hardness",),
         }
 
         # Map sensor types to ActiveChlorine keys
@@ -450,6 +454,8 @@ class PoollabSensor(CoordinatorEntity, SensorEntity):
             SENSOR_TYPE_ALK: ("PL T-Alka", "PL Alkalinity"),
             SENSOR_TYPE_CYA: ("PL Cyanuric Acid",),
             SENSOR_TYPE_SALT: ("PL Salt",),
+            SENSOR_TYPE_CALCIUM_HARDNESS: ("PL Calcium Hardness",),
+            SENSOR_TYPE_TOTAL_HARDNESS: ("PL Total Hardness",),
         }
 
         param_names = sensor_mapping.get(self.sensor_type)

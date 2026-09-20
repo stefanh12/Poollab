@@ -47,6 +47,9 @@ SENSOR_TYPE_TEMP = "temperature"
 SENSOR_TYPE_ALK = "alkalinity"
 SENSOR_TYPE_CYA = "cya"
 SENSOR_TYPE_SALT = "salt"
+# Water hardness, reported by Labcom as "PL Calcium Hardness" / "PL Total Hardness" (mg/l as CaCO3)
+SENSOR_TYPE_CALCIUM_HARDNESS = "calcium_hardness"
+SENSOR_TYPE_TOTAL_HARDNESS = "total_hardness"
 
 # ActiveChlorine calculated values
 SENSOR_TYPE_UNBOUND_CL = "unbound_chlorine"  # Free chlorine available for sanitization
@@ -153,6 +156,24 @@ SENSOR_CONFIGS = {
         "min": 0,
         "max": 3600,
     },
+    SENSOR_TYPE_CALCIUM_HARDNESS: {
+        "name": "Calcium Hardness",
+        "unit": "ppm",
+        "icon": "mdi:water-percent",
+        "precision": 0,
+        "min": 0,
+        "max": 2000,
+        "description": "Calcium hardness (mg/l as CaCO3)",
+    },
+    SENSOR_TYPE_TOTAL_HARDNESS: {
+        "name": "Total Hardness",
+        "unit": "ppm",
+        "icon": "mdi:water-outline",
+        "precision": 0,
+        "min": 0,
+        "max": 2000,
+        "description": "Total hardness, calcium plus magnesium (mg/l as CaCO3)",
+    },
     SENSOR_TYPE_UNBOUND_CL: {
         "name": "Unbound Chlorine",
         "unit": "ppm",
@@ -195,6 +216,8 @@ _COMMON_SENSOR_TYPES = (
     SENSOR_TYPE_TEMP,
     SENSOR_TYPE_ALK,
     SENSOR_TYPE_SALT,
+    SENSOR_TYPE_CALCIUM_HARDNESS,
+    SENSOR_TYPE_TOTAL_HARDNESS,
     SENSOR_TYPE_MEASUREMENT_COUNT,
     SENSOR_TYPE_INVALID_MEASUREMENT_COUNT,
     SENSOR_TYPE_LAST_MEASUREMENT,

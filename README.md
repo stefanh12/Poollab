@@ -13,6 +13,7 @@ A custom Home Assistant integration for Poollab/LabCom Cloud API, allowing you t
 - ⚗️ Alkalinity tracking
 - 🛡️ Stabilizer (CYA) monitoring in chlorine mode
 - 🧂 Salt level monitoring
+- 🪨 Calcium hardness and total hardness monitoring
 - 🔄 Per-device Backend Update Mode: Cloud polling or Manual refresh (12h safety sync)
 - ⏱️ Manual refresh (12h safety sync) includes a 12-hour safety refresh while Home Assistant is running
 - 🔘 Native refresh button entity in Manual refresh (12h safety sync) mode (works in dashboards and automations)
@@ -103,6 +104,8 @@ Each device also gets a **Backend Update Mode**:
 | **Alkalinity**            | Total alkalinity                                                  | ppm      | 0 – 300     |
 | **Stabilizer (CYA)**      | Cyanuric acid level _(chlorine mode only)_                        | ppm      | 0 – 200     |
 | **Salt Level**            | Salt concentration                                                | ppm      | 0 – 3600    |
+| **Calcium Hardness**      | Calcium hardness as CaCO₃ (Labcom `PL Calcium Hardness`)         | ppm      | 0 – 2000    |
+| **Total Hardness**        | Total hardness as CaCO₃ (Labcom `PL Total Hardness`)             | ppm      | 0 – 2000    |
 | **Bromine**               | Bromine concentration _(bromine + active oxygen mode only)_       | mg/l Br₂ | 0 – 9       |
 | **Active Oxygen**         | Active Oxygen concentration _(bromine + active oxygen mode only)_ | mg/l O₂  | 0 – 20      |
 
