@@ -283,10 +283,10 @@ class PoollabApiClient:
 
         devices = {}
         for measurement in measurements:
-            device_serial = measurement.get("device_serial", "unknown")
-            account = measurement.get("account", "unknown")
+            device_serial = measurement.get("device_serial") or "unknown"
+            account = measurement.get("account") or "unknown"
             # Skip tutorial/demo entries injected by the Labcom API
-            if device_serial.lower() == "tutorial" or measurement.get("operator_name", "").lower() == "tutorial":
+            if device_serial.lower() == "tutorial" or (measurement.get("operator_name") or "").lower() == "tutorial":
                 continue
             # Use (account, serial_number) tuple as key to keep multiple devices with same account
             device_key = (account, device_serial)
